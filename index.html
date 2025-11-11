@@ -892,6 +892,8 @@
             robberEnabled: false,
             players: [],
             currentPlayer: 0,
+            phase: 1, // Phase 1: Initial placement, Phase 2: Normal game
+            placementRound: 1, // Track which round of initial placement (1 or 2)
             dice: [1, 1],
             lastRoll: null,
             diceRolling: false,
@@ -910,7 +912,7 @@
             const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'];
             return Array.from({ length: count }, (_, i) => ({
                 name: `Player ${i + 1}`,
-                resources: { money: 4, garbage: 4, energy: 4, license: 4 },
+                resources: { money: 0, garbage: 0, energy: 0, license: 0 }, // Start with no resources
                 wastePlants: [],
                 incinerationPlants: [],
                 roads: [],
@@ -1004,6 +1006,28 @@
         function buildWastePlant(vertexId) {
             const player = gameState.players[gameState.currentPlayer];
             
+            // Phase 1: Free placement
+            if (gameState.phase === 1) {
+                const occupied = gameState.players.some(p => 
+                    p.wastePlants.includes(vertexId) || p.incinerationPlants.includes(vertexId)
+                );
+                
+                if (occupied) {
+                    gameState.message = '🚫 This location is already occupied!';
+                    render();
+                    return;
+                }
+                
+                player.wastePlants.push(vertexId);
+                player.vp++;
+                
+                gameState.message = `🏭 ${player.name} placed initial Waste Plant! Place 3 roads next.`;
+                gameState.buildMode = 'road';
+                render();
+                return;
+            }
+            
+            // Phase 2: Normal building with resources
             if (!canAfford(player, 'wastePlant')) {
                 gameState.message = '❌ Not enough resources to build Waste Plant! Check the costs.';
                 render();
@@ -1061,6 +1085,51 @@
         function buildRoad(edgeId) {
             const player = gameState.players[gameState.currentPlayer];
             
+            // Phase 1: Free placement of 3 roads
+            if (gameState.phase === 1) {
+                const occupied = gameState.players.some(p => p.roads.includes(edgeId));
+                
+                if (occupied) {
+                    gameState.message = '🚫 A road already exists here!';
+                    render();
+                    return;
+                }
+                
+                // Check connection to player's waste plant
+                const edge = EDGES.find(e => e.id === edgeId);
+                const hasConnection = player.wastePlants.includes(edge.v1) || 
+                                    player.wastePlants.includes(edge.v2) ||
+                                    player.roads.some(roadId => {
+                                        const road = EDGES.find(e => e.id === roadId);
+                                        return road && (road.v1 === edge.v1 || road.v2 === edge.v1 || 
+                                                       road.v1 === edge.v2 || road.v2 === edge.v2);
+                                    });
+                
+                if (!hasConnection) {
+                    gameState.message = '⚠️ Roads must connect to your Waste Plant or existing roads!';
+                    render();
+                    return;
+                }
+                
+                player.roads.push(edgeId);
+                
+                const roadsPlaced = player.roads.length;
+                const wastePlantsPlaced = player.wastePlants.length + player.incinerationPlants.length;
+                
+                // Check if this player has placed all initial pieces (1 waste plant + 3 roads)
+                if (roadsPlaced >= 3 && wastePlantsPlaced >= 1) {
+                    gameState.buildMode = null;
+                    advanceToNextPlayer();
+                } else {
+                    const roadsRemaining = 3 - roadsPlaced;
+                    gameState.message = `🛣️ ${player.name} placed a road! ${roadsRemaining} more road(s) to place.`;
+                }
+                
+                render();
+                return;
+            }
+            
+            // Phase 2: Normal building with resources
             if (!canAfford(player, 'road')) {
                 gameState.message = '❌ Not enough resources to build Road!';
                 render();
@@ -1101,6 +1170,50 @@
             gameState.message = `🛣️ ${player.name} built a Road!`;
             gameState.buildMode = null;
             render();
+        }
+        
+        // Advance to next player during initial placement
+        function advanceToNextPlayer() {
+            const totalPlayers = gameState.players.length;
+            
+            // First round: 0 -> 1 -> 2 -> 3
+            if (gameState.placementRound === 1) {
+                if (gameState.currentPlayer < totalPlayers - 1) {
+                    gameState.currentPlayer++;
+                    gameState.message = `🎯 ${gameState.players[gameState.currentPlayer].name}'s turn! Place 1 Waste Plant and 3 Roads.`;
+                    gameState.buildMode = 'wastePlant';
+                } else {
+                    // Start second round in reverse
+                    gameState.placementRound = 2;
+                    gameState.message = `🔄 Round 2! ${gameState.players[gameState.currentPlayer].name}'s turn! Place 1 Waste Plant and 3 Roads.`;
+                    gameState.buildMode = 'wastePlant';
+                }
+            }
+            // Second round: 3 -> 2 -> 1 -> 0
+            else if (gameState.placementRound === 2) {
+                if (gameState.currentPlayer > 0) {
+                    gameState.currentPlayer--;
+                    gameState.message = `🎯 ${gameState.players[gameState.currentPlayer].name}'s turn! Place 1 Waste Plant and 3 Roads.`;
+                    gameState.buildMode = 'wastePlant';
+                } else {
+                    // Initial placement complete, start Phase 2
+                    startPhase2();
+                }
+            }
+        }
+        
+        // Start Phase 2 (normal game)
+        function startPhase2() {
+            gameState.phase = 2;
+            gameState.currentPlayer = 0;
+            gameState.buildMode = null;
+            
+            // Give starting resources from second placement
+            gameState.players.forEach(player => {
+                player.resources = { money: 2, garbage: 2, energy: 2, license: 2 };
+            });
+            
+            gameState.message = `🎮 Phase 2 begins! ${gameState.players[0].name}'s turn! 🎲 Roll the dice to start!`;
         }
         
         // Check for longest road (simplified - counts total roads)
@@ -1459,53 +1572,77 @@
                         <div class="control-card">
                             <div class="control-title">${player.name}'s Turn</div>
                             
-                            <div class="dice-container">
-                                <div class="die ${gameState.diceRolling ? 'dice-rolling' : ''}">${renderDiceDots(gameState.dice[0])}</div>
-                                <div class="die ${gameState.diceRolling ? 'dice-rolling' : ''}">${renderDiceDots(gameState.dice[1])}</div>
-                                ${gameState.lastRoll ? `<div class="roll-total">= ${gameState.lastRoll}</div>` : ''}
-                                <button class="btn btn-primary" onclick="rollDice()" style="margin: 0; padding: 8px 16px;">
-                                    🎲 Roll
-                                </button>
-                            </div>
+                            ${gameState.phase === 2 ? `
+                                <div class="dice-container">
+                                    <div class="die ${gameState.diceRolling ? 'dice-rolling' : ''}">${renderDiceDots(gameState.dice[0])}</div>
+                                    <div class="die ${gameState.diceRolling ? 'dice-rolling' : ''}">${renderDiceDots(gameState.dice[1])}</div>
+                                    ${gameState.lastRoll ? `<div class="roll-total">= ${gameState.lastRoll}</div>` : ''}
+                                    <button class="btn btn-primary" onclick="rollDice()" style="margin: 0; padding: 8px 16px;">
+                                        🎲 Roll
+                                    </button>
+                                </div>
+                            ` : `
+                                <div style="padding: 15px; background: #fef3c7; border-radius: 8px; margin-bottom: 15px;">
+                                    <strong>🏗️ Phase 1: Initial Placement</strong><br>
+                                    <small>Place 1 Waste Plant + 3 Roads (Free!)</small><br>
+                                    <small style="color: #92400e;">Round ${gameState.placementRound} of 2</small>
+                                </div>
+                            `}
                             
                             <div class="message-box">${gameState.message}</div>
                             
-                            <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
-                                onclick="gameState.buildMode = gameState.buildMode === 'wastePlant' ? null : 'wastePlant'; render()"
-                                ${!canAfford(player, 'wastePlant') ? 'disabled' : ''}>
-                                ${gameState.buildMode === 'wastePlant' ? '❌ Cancel' : '🏭 Build Waste Plant (1 VP)'}
-                                <span class="cost-label">💰 M1 🗑️ G1 ⚡ E1 📜 L1</span>
-                            </button>
+                            ${gameState.phase === 1 ? `
+                                <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
+                                    onclick="gameState.buildMode = 'wastePlant'; render()"
+                                    ${player.wastePlants.length >= (gameState.placementRound === 1 ? 1 : 2) ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'wastePlant' ? '✅ Building Waste Plant' : '🏭 Place Waste Plant'}
+                                    <span class="cost-label">FREE in Phase 1</span>
+                                </button>
+                                
+                                <button class="btn btn-warning ${gameState.buildMode === 'road' ? 'active' : ''}"
+                                    onclick="gameState.buildMode = 'road'; render()"
+                                    ${player.roads.length >= (gameState.placementRound * 3) ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'road' ? '✅ Building Roads' : '🛣️ Place Roads'}
+                                    <span class="cost-label">${player.roads.length % 3}/3 placed</span>
+                                </button>
+                            ` : `
+                                <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
+                                    onclick="gameState.buildMode = gameState.buildMode === 'wastePlant' ? null : 'wastePlant'; render()"
+                                    ${!canAfford(player, 'wastePlant') ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'wastePlant' ? '❌ Cancel' : '🏭 Build Waste Plant (1 VP)'}
+                                    <span class="cost-label">💰 M1 🗑️ G1 ⚡ E1 📜 L1</span>
+                                </button>
+                                
+                                <button class="btn btn-warning ${gameState.buildMode === 'incinerationPlant' ? 'active' : ''}"
+                                    onclick="gameState.buildMode = gameState.buildMode === 'incinerationPlant' ? null : 'incinerationPlant'; render()"
+                                    ${!canAfford(player, 'incinerationPlant') ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'incinerationPlant' ? '❌ Cancel' : '🏢 Build Incineration Plant (2 VP)'}
+                                    <span class="cost-label">🗑️ G2 💰 M3 (Upgrade)</span>
+                                </button>
+                                
+                                <button class="btn btn-warning ${gameState.buildMode === 'road' ? 'active' : ''}"
+                                    onclick="gameState.buildMode = gameState.buildMode === 'road' ? null : 'road'; render()"
+                                    ${!canAfford(player, 'road') ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'road' ? '❌ Cancel' : '🛣️ Build Road'}
+                                    <span class="cost-label">⚡ E1 📜 L1</span>
+                                </button>
                             
-                            <button class="btn btn-warning ${gameState.buildMode === 'incinerationPlant' ? 'active' : ''}"
-                                onclick="gameState.buildMode = gameState.buildMode === 'incinerationPlant' ? null : 'incinerationPlant'; render()"
-                                ${!canAfford(player, 'incinerationPlant') ? 'disabled' : ''}>
-                                ${gameState.buildMode === 'incinerationPlant' ? '❌ Cancel' : '🏢 Build Incineration Plant (2 VP)'}
-                                <span class="cost-label">🗑️ G2 💰 M3 (Upgrade)</span>
-                            </button>
-                            
-                            <button class="btn btn-warning ${gameState.buildMode === 'road' ? 'active' : ''}"
-                                onclick="gameState.buildMode = gameState.buildMode === 'road' ? null : 'road'; render()"
-                                ${!canAfford(player, 'road') ? 'disabled' : ''}>
-                                ${gameState.buildMode === 'road' ? '❌ Cancel' : '🛣️ Build Road'}
-                                <span class="cost-label">⚡ E1 📜 L1</span>
-                            </button>
-                            
-                            <button class="btn btn-info"
-                                onclick="buyDevCard()"
-                                ${!canAfford(player, 'devCard') ? 'disabled' : ''}>
-                                🎴 Buy Development Card
-                                <span class="cost-label">🗑️ G1 ⚡ E1 💰 M1</span>
-                            </button>
-                            
-                            <button class="btn btn-success ${gameState.tradeMode ? 'active' : ''}"
-                                onclick="gameState.tradeMode = gameState.tradeMode ? null : 'bank'; render()">
-                                ${gameState.tradeMode ? '❌ Cancel Trade' : '🏦 Bank Trade (4:1)'}
-                            </button>
-                            
-                            <button class="btn btn-secondary" onclick="endTurn()">
-                                ⏭️ End Turn
-                            </button>
+                                <button class="btn btn-info"
+                                    onclick="buyDevCard()"
+                                    ${!canAfford(player, 'devCard') ? 'disabled' : ''}>
+                                    🎴 Buy Development Card
+                                    <span class="cost-label">🗑️ G1 ⚡ E1 💰 M1</span>
+                                </button>
+                                
+                                <button class="btn btn-success ${gameState.tradeMode ? 'active' : ''}"
+                                    onclick="gameState.tradeMode = gameState.tradeMode ? null : 'bank'; render()">
+                                    ${gameState.tradeMode ? '❌ Cancel Trade' : '🏦 Bank Trade (4:1)'}
+                                </button>
+                                
+                                <button class="btn btn-secondary" onclick="endTurn()">
+                                    ⏭️ End Turn
+                                </button>
+                            `}
                             
                             ${gameState.tradeMode === 'bank' ? `
                                 <div class="trade-panel">
@@ -1554,14 +1691,24 @@
                         
                         <div class="control-card help-box">
                             <h4>📖 How to Play:</h4>
-                            <ul>
-                                <li>Roll dice for resources</li>
-                                <li>Build Waste Plants (1 VP)</li>
-                                <li>Upgrade to Incineration Plants (2 VP)</li>
-                                <li>Buy & play dev cards</li>
-                                <li>Trade with bank (4:1)</li>
-                                <li>First to 10 VP wins!</li>
-                            </ul>
+                            ${gameState.phase === 1 ? `
+                                <ul>
+                                    <li><strong>Phase 1: Setup</strong></li>
+                                    <li>Place 1 Waste Plant + 3 Roads (Round 1)</li>
+                                    <li>Then in reverse order (Round 2)</li>
+                                    <li>Total: 2 Waste Plants + 6 Roads</li>
+                                    <li>All placements are FREE!</li>
+                                </ul>
+                            ` : `
+                                <ul>
+                                    <li>Roll dice for resources</li>
+                                    <li>Build Waste Plants (1 VP)</li>
+                                    <li>Upgrade to Incineration Plants (2 VP)</li>
+                                    <li>Buy & play dev cards</li>
+                                    <li>Trade with bank (4:1)</li>
+                                    <li>First to 10 VP wins!</li>
+                                </ul>
+                            `}
                         </div>
                     </div>
                 </div>
@@ -1598,7 +1745,11 @@
             gameState.players = initializePlayers(gameState.numPlayers);
             gameState.devCardDeck = createDevCardDeck();
             gameState.screen = 'game';
-            gameState.message = `🎯 ${gameState.players[0].name}'s turn! 🎲 Roll the dice to begin your energy empire!`;
+            gameState.phase = 1;
+            gameState.placementRound = 1;
+            gameState.currentPlayer = 0;
+            gameState.buildMode = 'wastePlant';
+            gameState.message = `🎯 Phase 1: Initial Placement! ${gameState.players[0].name} places 1 Waste Plant and 3 Roads.`;
             render();
         }
         
