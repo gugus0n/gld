@@ -1021,8 +1021,9 @@
                 player.wastePlants.push(vertexId);
                 player.vp++;
                 
-                gameState.message = `🏭 ${player.name} placed initial Waste Plant! Place 3 roads next.`;
-                gameState.buildMode = 'road';
+                gameState.message = `🏭 ${player.name} placed a Waste Plant!`;
+                gameState.buildMode = null;
+                advanceToNextPlayer();
                 render();
                 return;
             }
@@ -1085,7 +1086,7 @@
         function buildRoad(edgeId) {
             const player = gameState.players[gameState.currentPlayer];
             
-            // Phase 1: Free placement of 3 roads
+            // Phase 1: Free placement
             if (gameState.phase === 1) {
                 const occupied = gameState.players.some(p => p.roads.includes(edgeId));
                 
@@ -1095,10 +1096,12 @@
                     return;
                 }
                 
-                // Check connection to player's waste plant
+                // Check connection to player's waste plant or existing roads
                 const edge = EDGES.find(e => e.id === edgeId);
                 const hasConnection = player.wastePlants.includes(edge.v1) || 
                                     player.wastePlants.includes(edge.v2) ||
+                                    player.incinerationPlants.includes(edge.v1) ||
+                                    player.incinerationPlants.includes(edge.v2) ||
                                     player.roads.some(roadId => {
                                         const road = EDGES.find(e => e.id === roadId);
                                         return road && (road.v1 === edge.v1 || road.v2 === edge.v1 || 
@@ -1112,19 +1115,9 @@
                 }
                 
                 player.roads.push(edgeId);
-                
-                const roadsPlaced = player.roads.length;
-                const wastePlantsPlaced = player.wastePlants.length + player.incinerationPlants.length;
-                
-                // Check if this player has placed all initial pieces (1 waste plant + 3 roads)
-                if (roadsPlaced >= 3 && wastePlantsPlaced >= 1) {
-                    gameState.buildMode = null;
-                    advanceToNextPlayer();
-                } else {
-                    const roadsRemaining = 3 - roadsPlaced;
-                    gameState.message = `🛣️ ${player.name} placed a road! ${roadsRemaining} more road(s) to place.`;
-                }
-                
+                gameState.message = `🛣️ ${player.name} placed a road!`;
+                gameState.buildMode = null;
+                advanceToNextPlayer();
                 render();
                 return;
             }
@@ -1175,31 +1168,90 @@
         // Advance to next player during initial placement
         function advanceToNextPlayer() {
             const totalPlayers = gameState.players.length;
+            const itemsPerPlayer = 4; // 1 waste plant + 3 roads
             
-            // First round: 0 -> 1 -> 2 -> 3
-            if (gameState.placementRound === 1) {
-                if (gameState.currentPlayer < totalPlayers - 1) {
-                    gameState.currentPlayer++;
-                    gameState.message = `🎯 ${gameState.players[gameState.currentPlayer].name}'s turn! Place 1 Waste Plant and 3 Roads.`;
-                    gameState.buildMode = 'wastePlant';
+            // Count total items placed by current player in current round
+            const player = gameState.players[gameState.currentPlayer];
+            const roundOffset = (gameState.placementRound - 1) * itemsPerPlayer;
+            const plantsThisRound = Math.max(0, player.wastePlants.length - (gameState.placementRound - 1));
+            const roadsThisRound = Math.max(0, player.roads.length - (gameState.placementRound - 1) * 3);
+            const itemsPlacedThisRound = plantsThisRound + roadsThisRound;
+            
+            // Determine what to place next
+            if (itemsPlacedThisRound < itemsPerPlayer) {
+                // Player still needs to place more items - switch to next player
+                if (gameState.placementRound === 1) {
+                    // Round 1: move forward
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % totalPlayers;
                 } else {
-                    // Start second round in reverse
-                    gameState.placementRound = 2;
-                    gameState.message = `🔄 Round 2! ${gameState.players[gameState.currentPlayer].name}'s turn! Place 1 Waste Plant and 3 Roads.`;
+                    // Round 2: move backward
+                    gameState.currentPlayer = (gameState.currentPlayer - 1 + totalPlayers) % totalPlayers;
+                }
+                
+                const nextPlayer = gameState.players[gameState.currentPlayer];
+                const nextPlayerPlantsThisRound = Math.max(0, nextPlayer.wastePlants.length - (gameState.placementRound - 1));
+                const nextPlayerRoadsThisRound = Math.max(0, nextPlayer.roads.length - (gameState.placementRound - 1) * 3);
+                
+                // Determine what the next player should place
+                if (nextPlayerPlantsThisRound === 0) {
                     gameState.buildMode = 'wastePlant';
+                    gameState.message = `🏭 ${nextPlayer.name}'s turn! Place a Waste Plant.`;
+                } else {
+                    gameState.buildMode = 'road';
+                    const roadsRemaining = 3 - nextPlayerRoadsThisRound;
+                    gameState.message = `🛣️ ${nextPlayer.name}'s turn! Place a road (${roadsRemaining} more needed).`;
+                }
+                
+                render();
+                return;
+            }
+            
+            // Check if round is complete (all players placed all items)
+            let roundComplete = true;
+            for (let i = 0; i < totalPlayers; i++) {
+                const p = gameState.players[i];
+                const pPlantsThisRound = Math.max(0, p.wastePlants.length - (gameState.placementRound - 1));
+                const pRoadsThisRound = Math.max(0, p.roads.length - (gameState.placementRound - 1) * 3);
+                if (pPlantsThisRound + pRoadsThisRound < itemsPerPlayer) {
+                    roundComplete = false;
+                    break;
                 }
             }
-            // Second round: 3 -> 2 -> 1 -> 0
-            else if (gameState.placementRound === 2) {
-                if (gameState.currentPlayer > 0) {
-                    gameState.currentPlayer--;
-                    gameState.message = `🎯 ${gameState.players[gameState.currentPlayer].name}'s turn! Place 1 Waste Plant and 3 Roads.`;
+            
+            if (roundComplete) {
+                if (gameState.placementRound === 1) {
+                    // Start round 2
+                    gameState.placementRound = 2;
+                    gameState.currentPlayer = totalPlayers - 1;
                     gameState.buildMode = 'wastePlant';
+                    gameState.message = `🔄 Round 2! ${gameState.players[gameState.currentPlayer].name}'s turn! Place a Waste Plant.`;
                 } else {
-                    // Initial placement complete, start Phase 2
+                    // Both rounds complete, start Phase 2
                     startPhase2();
                 }
+            } else {
+                // Continue with next player in sequence
+                if (gameState.placementRound === 1) {
+                    gameState.currentPlayer = (gameState.currentPlayer + 1) % totalPlayers;
+                } else {
+                    gameState.currentPlayer = (gameState.currentPlayer - 1 + totalPlayers) % totalPlayers;
+                }
+                
+                const nextPlayer = gameState.players[gameState.currentPlayer];
+                const nextPlayerPlantsThisRound = Math.max(0, nextPlayer.wastePlants.length - (gameState.placementRound - 1));
+                const nextPlayerRoadsThisRound = Math.max(0, nextPlayer.roads.length - (gameState.placementRound - 1) * 3);
+                
+                if (nextPlayerPlantsThisRound === 0) {
+                    gameState.buildMode = 'wastePlant';
+                    gameState.message = `🏭 ${nextPlayer.name}'s turn! Place a Waste Plant.`;
+                } else {
+                    gameState.buildMode = 'road';
+                    const roadsRemaining = 3 - nextPlayerRoadsThisRound;
+                    gameState.message = `🛣️ ${nextPlayer.name}'s turn! Place a road (${roadsRemaining} more needed).`;
+                }
             }
+            
+            render();
         }
         
         // Start Phase 2 (normal game)
@@ -1584,8 +1636,9 @@
                             ` : `
                                 <div style="padding: 15px; background: #fef3c7; border-radius: 8px; margin-bottom: 15px;">
                                     <strong>🏗️ Phase 1: Initial Placement</strong><br>
-                                    <small>Place 1 Waste Plant + 3 Roads (Free!)</small><br>
-                                    <small style="color: #92400e;">Round ${gameState.placementRound} of 2</small>
+                                    <small>Each player places 1 item per turn</small><br>
+                                    <small style="color: #92400e;">Round ${gameState.placementRound} of 2</small><br>
+                                    <small style="color: #059669;">Goal: 1 Waste Plant + 3 Roads per round</small>
                                 </div>
                             `}
                             
@@ -1594,16 +1647,16 @@
                             ${gameState.phase === 1 ? `
                                 <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
                                     onclick="gameState.buildMode = 'wastePlant'; render()"
-                                    ${player.wastePlants.length >= (gameState.placementRound === 1 ? 1 : 2) ? 'disabled' : ''}>
-                                    ${gameState.buildMode === 'wastePlant' ? '✅ Building Waste Plant' : '🏭 Place Waste Plant'}
-                                    <span class="cost-label">FREE in Phase 1</span>
+                                    ${gameState.buildMode !== 'wastePlant' ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'wastePlant' ? '✅ Place Waste Plant (Click on board)' : '🏭 Waste Plant'}
+                                    <span class="cost-label">FREE</span>
                                 </button>
                                 
                                 <button class="btn btn-warning ${gameState.buildMode === 'road' ? 'active' : ''}"
                                     onclick="gameState.buildMode = 'road'; render()"
-                                    ${player.roads.length >= (gameState.placementRound * 3) ? 'disabled' : ''}>
-                                    ${gameState.buildMode === 'road' ? '✅ Building Roads' : '🛣️ Place Roads'}
-                                    <span class="cost-label">${player.roads.length % 3}/3 placed</span>
+                                    ${gameState.buildMode !== 'road' ? 'disabled' : ''}>
+                                    ${gameState.buildMode === 'road' ? '✅ Place Road (Click on board)' : '🛣️ Road'}
+                                    <span class="cost-label">FREE</span>
                                 </button>
                             ` : `
                                 <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
@@ -1693,11 +1746,12 @@
                             <h4>📖 How to Play:</h4>
                             ${gameState.phase === 1 ? `
                                 <ul>
-                                    <li><strong>Phase 1: Setup</strong></li>
-                                    <li>Place 1 Waste Plant + 3 Roads (Round 1)</li>
-                                    <li>Then in reverse order (Round 2)</li>
-                                    <li>Total: 2 Waste Plants + 6 Roads</li>
-                                    <li>All placements are FREE!</li>
+                                    <li><strong>Phase 1: Setup (Turn-based)</strong></li>
+                                    <li>Players alternate placing 1 item at a time</li>
+                                    <li>Each round: 1 Waste Plant + 3 Roads</li>
+                                    <li>Round 1: Forward order (P1→P2→P3→P4)</li>
+                                    <li>Round 2: Reverse order (P4→P3→P2→P1)</li>
+                                    <li>Roads must connect to your Waste Plant!</li>
                                 </ul>
                             ` : `
                                 <ul>
@@ -1749,7 +1803,7 @@
             gameState.placementRound = 1;
             gameState.currentPlayer = 0;
             gameState.buildMode = 'wastePlant';
-            gameState.message = `🎯 Phase 1: Initial Placement! ${gameState.players[0].name} places 1 Waste Plant and 3 Roads.`;
+            gameState.message = `🏭 Phase 1: Initial Placement! ${gameState.players[0].name} places a Waste Plant. Click on a vertex on the board.`;
             render();
         }
         
