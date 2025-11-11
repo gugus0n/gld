@@ -1546,11 +1546,12 @@
                 // Render built road
                 return renderRoadSymbol(edge.x1, edge.y1, edge.x2, edge.y2, road.color);
             } else if (gameState.buildMode === 'road') {
-                // Show available road spots when in build mode
+                // Show available road spots when in build mode - made MUCH more visible
                 return `
                     <line x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" 
-                        stroke="#cbd5e0" stroke-width="4" stroke-linecap="round" opacity="0.4"
-                        style="cursor: pointer;" onclick="${onClick}"/>
+                        stroke="#64748b" stroke-width="6" stroke-linecap="round" opacity="0.7"
+                        stroke-dasharray="5,5"
+                        style="cursor: pointer; filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));" onclick="${onClick}"/>
                 `;
             }
             return '';
