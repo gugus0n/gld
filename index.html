@@ -279,17 +279,22 @@
         }
         
         .die {
-            width: 40px;
-            height: 40px;
-            background: white;
-            border: 3px solid #2d3748;
-            border-radius: 8px;
+            width: 50px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 1.5rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        .die:hover {
+            transform: scale(1.05);
+        }
+        
+        .die svg {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
         }
         
         .roll-total {
@@ -514,6 +519,38 @@
             color: #718096;
             margin-top: 8px;
         }
+        
+        /* Animations for buildings */
+        @keyframes buildingPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes buildingAppear {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
+            100% { transform: scale(1) rotate(360deg); opacity: 1; }
+        }
+        
+        .building-new {
+            animation: buildingAppear 0.6s ease-out;
+        }
+        
+        .building-hover:hover {
+            animation: buildingPulse 0.5s ease-in-out;
+        }
+        
+        /* Dice dot animations */
+        @keyframes diceRoll {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+        
+        .dice-rolling {
+            animation: diceRoll 0.5s ease-in-out;
+        }
     </style>
 </head>
 <body>
@@ -617,6 +654,185 @@
         
         const VERTICES = generateVertices();
         
+        // Enhanced Resource Pattern Rendering with Stylized Landscapes
+        function renderResourcePattern(tile) {
+            const patternId = `pattern-${tile.type}-${tile.id}`;
+            const color = tile.type === 'desert' ? '#fbbf24' : RESOURCE_COLORS[tile.type];
+            
+            let patternContent = '';
+            
+            if (tile.type === 'money') {
+                // Gold bars landscape
+                patternContent = `
+                    <defs>
+                        <pattern id="${patternId}" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <rect width="40" height="40" fill="${color}"/>
+                            <!-- Gold bar 1 -->
+                            <rect x="8" y="12" width="24" height="8" fill="#fbbf24" stroke="#d97706" stroke-width="1" rx="1"/>
+                            <rect x="10" y="13" width="20" height="2" fill="#fde047" opacity="0.6"/>
+                            <!-- Gold bar 2 -->
+                            <rect x="12" y="22" width="16" height="6" fill="#fbbf24" stroke="#d97706" stroke-width="1" rx="1"/>
+                            <rect x="14" y="23" width="12" height="1.5" fill="#fde047" opacity="0.6"/>
+                            <!-- Sparkle effects -->
+                            <circle cx="14" cy="15" r="1" fill="#fef08a"/>
+                            <circle cx="26" cy="17" r="0.8" fill="#fef08a"/>
+                            <circle cx="20" cy="25" r="0.7" fill="#fef08a"/>
+                        </pattern>
+                    </defs>
+                `;
+            } else if (tile.type === 'garbage') {
+                // Recycling bins landscape
+                patternContent = `
+                    <defs>
+                        <pattern id="${patternId}" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <rect width="40" height="40" fill="${color}"/>
+                            <!-- Recycling bin -->
+                            <rect x="12" y="16" width="16" height="18" fill="#9ca3af" stroke="#374151" stroke-width="1.2" rx="1"/>
+                            <rect x="13" y="17" width="14" height="2" fill="#4b5563"/>
+                            <!-- Recycling symbol -->
+                            <path d="M 20 22 L 22 26 L 18 26 Z" fill="#10b981" stroke="#059669" stroke-width="0.5"/>
+                            <path d="M 23 24 L 25 20 L 23 20 Z" fill="#10b981" stroke="#059669" stroke-width="0.5"/>
+                            <path d="M 17 24 L 15 20 L 17 20 Z" fill="#10b981" stroke="#059669" stroke-width="0.5"/>
+                            <!-- Arrow details -->
+                            <circle cx="20" cy="24" r="1.5" fill="none" stroke="#10b981" stroke-width="0.8"/>
+                        </pattern>
+                    </defs>
+                `;
+            } else if (tile.type === 'energy') {
+                // Power lines landscape
+                patternContent = `
+                    <defs>
+                        <pattern id="${patternId}" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <rect width="40" height="40" fill="${color}"/>
+                            <!-- Power line poles -->
+                            <rect x="10" y="18" width="2" height="16" fill="#475569"/>
+                            <rect x="28" y="18" width="2" height="16" fill="#475569"/>
+                            <!-- Cross beams -->
+                            <rect x="7" y="18" width="8" height="1.5" fill="#475569"/>
+                            <rect x="25" y="18" width="8" height="1.5" fill="#475569"/>
+                            <!-- Power lines -->
+                            <path d="M 11 20 Q 20 23 29 20" stroke="#fbbf24" stroke-width="1.2" fill="none"/>
+                            <path d="M 11 22 Q 20 25 29 22" stroke="#fbbf24" stroke-width="1.2" fill="none"/>
+                            <path d="M 11 24 Q 20 27 29 24" stroke="#fbbf24" stroke-width="1.2" fill="none"/>
+                            <!-- Lightning bolt accent -->
+                            <path d="M 20 12 L 18 17 L 21 17 L 19 22" stroke="#fef08a" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                        </pattern>
+                    </defs>
+                `;
+            } else if (tile.type === 'license') {
+                // Certificates/official seals landscape
+                patternContent = `
+                    <defs>
+                        <pattern id="${patternId}" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <rect width="40" height="40" fill="${color}"/>
+                            <!-- Certificate document -->
+                            <rect x="10" y="12" width="20" height="20" fill="white" stroke="#94a3b8" stroke-width="1.5" rx="2"/>
+                            <!-- Header line -->
+                            <line x1="13" y1="16" x2="27" y2="16" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/>
+                            <!-- Text lines -->
+                            <line x1="13" y1="20" x2="27" y2="20" stroke="#cbd5e0" stroke-width="1"/>
+                            <line x1="13" y1="23" x2="24" y2="23" stroke="#cbd5e0" stroke-width="1"/>
+                            <line x1="13" y1="26" x2="27" y2="26" stroke="#cbd5e0" stroke-width="1"/>
+                            <!-- Official seal -->
+                            <circle cx="23" cy="28" r="3" fill="none" stroke="#ef4444" stroke-width="1.2"/>
+                            <circle cx="23" cy="28" r="1.5" fill="#ef4444" opacity="0.3"/>
+                            <!-- Ribbon -->
+                            <path d="M 23 31 L 22 34 L 23 33 L 24 34 Z" fill="#ef4444"/>
+                        </pattern>
+                    </defs>
+                `;
+            } else {
+                // Desert (default pattern)
+                patternContent = `
+                    <defs>
+                        <pattern id="${patternId}" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                            <rect width="40" height="40" fill="${color}"/>
+                            <!-- Sand dunes -->
+                            <path d="M 0 25 Q 10 20 20 25 T 40 25 L 40 40 L 0 40 Z" fill="#f59e0b" opacity="0.4"/>
+                            <path d="M 0 30 Q 15 26 30 30 T 40 30 L 40 40 L 0 40 Z" fill="#d97706" opacity="0.3"/>
+                        </pattern>
+                    </defs>
+                `;
+            }
+            
+            return patternContent;
+        }
+        
+        // Render symbolic dice with dots instead of numbers
+        function renderDiceDots(value) {
+            const dotPatterns = {
+                1: [[20, 20]],
+                2: [[12, 12], [28, 28]],
+                3: [[12, 12], [20, 20], [28, 28]],
+                4: [[12, 12], [28, 12], [12, 28], [28, 28]],
+                5: [[12, 12], [28, 12], [20, 20], [12, 28], [28, 28]],
+                6: [[12, 12], [28, 12], [12, 20], [28, 20], [12, 28], [28, 28]]
+            };
+            
+            const dots = dotPatterns[value] || [];
+            return `
+                <svg width="40" height="40" viewBox="0 0 40 40" style="display: block;">
+                    <rect width="40" height="40" rx="6" fill="white" stroke="#2d3748" stroke-width="2"/>
+                    ${dots.map(([cx, cy]) => `
+                        <circle cx="${cx}" cy="${cy}" r="3" fill="#2d3748"/>
+                    `).join('')}
+                </svg>
+            `;
+        }
+        
+        // Render building symbols
+        function renderWastePlantSymbol(x, y, color, isNew = false) {
+            return `
+                <g class="${isNew ? 'building-new' : 'building-hover'}" transform="translate(${x}, ${y})">
+                    <!-- Waste plant chimney -->
+                    <rect x="-6" y="-12" width="4" height="12" fill="${color}" stroke="#2d3748" stroke-width="1.5"/>
+                    <!-- Building base -->
+                    <rect x="-10" y="-6" width="12" height="10" fill="${color}" stroke="#2d3748" stroke-width="1.5" rx="1"/>
+                    <!-- Smoke from chimney -->
+                    <circle cx="-4" cy="-14" r="2" fill="#cbd5e0" opacity="0.6"/>
+                    <circle cx="-3" cy="-16" r="1.5" fill="#cbd5e0" opacity="0.5"/>
+                    <!-- Door -->
+                    <rect x="-6" y="-2" width="4" height="5" fill="#1f2937"/>
+                    <!-- Window -->
+                    <rect x="-2" y="-4" width="2" height="2" fill="#fbbf24" opacity="0.8"/>
+                </g>
+            `;
+        }
+        
+        function renderIncinerationPlantSymbol(x, y, color, isNew = false) {
+            return `
+                <g class="${isNew ? 'building-new' : 'building-hover'}" transform="translate(${x}, ${y})">
+                    <!-- Main structure -->
+                    <rect x="-12" y="-10" width="16" height="14" fill="${color}" stroke="#2d3748" stroke-width="2" rx="1"/>
+                    <!-- Tall chimney -->
+                    <rect x="-10" y="-18" width="5" height="10" fill="${color}" stroke="#2d3748" stroke-width="1.5"/>
+                    <rect x="1" y="-16" width="4" height="8" fill="${color}" stroke="#2d3748" stroke-width="1.5"/>
+                    <!-- Smoke -->
+                    <circle cx="-7" cy="-20" r="2.5" fill="#94a3b8" opacity="0.7"/>
+                    <circle cx="-6" cy="-23" r="2" fill="#94a3b8" opacity="0.6"/>
+                    <circle cx="3" cy="-18" r="2" fill="#94a3b8" opacity="0.6"/>
+                    <!-- Windows -->
+                    <rect x="-9" y="-6" width="3" height="3" fill="#fbbf24" opacity="0.9"/>
+                    <rect x="-5" y="-6" width="3" height="3" fill="#fbbf24" opacity="0.9"/>
+                    <rect x="-9" y="-2" width="3" height="3" fill="#fbbf24" opacity="0.9"/>
+                    <!-- Fire symbol -->
+                    <path d="M -1 -4 L 0 -7 L 1 -4 Z" fill="#ef4444"/>
+                </g>
+            `;
+        }
+        
+        function renderRoadSymbol(x1, y1, x2, y2, color) {
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            return `
+                <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" 
+                    stroke="${color}" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+                <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" 
+                    stroke="#2d3748" stroke-width="2" stroke-linecap="round"/>
+            `;
+        }
+
+        
         // Create development card deck
         function createDevCardDeck() {
             const deck = [];
@@ -637,9 +853,11 @@
             currentPlayer: 0,
             dice: [1, 1],
             lastRoll: null,
-            message: 'Welcome to Energy Catan!',
+            diceRolling: false,
+            message: '🌍 Welcome to Energy Catan! Build a sustainable energy empire! 🌍',
             buildMode: null,
             robberTile: 9,
+            robberPlayer: null, // Track who placed the robber for bonus resources
             devCardDeck: [],
             tradeMode: null,
             tradingResource: null,
@@ -684,53 +902,61 @@
         
         // Roll dice
         function rollDice() {
-            const d1 = Math.floor(Math.random() * 6) + 1;
-            const d2 = Math.floor(Math.random() * 6) + 1;
-            gameState.dice = [d1, d2];
-            gameState.lastRoll = d1 + d2;
+            // Add rolling animation
+            gameState.diceRolling = true;
+            render();
             
-            if (gameState.robberEnabled && gameState.lastRoll === 7) {
-                gameState.message = `Rolled 7! Move the robber to a new tile (click on a hexagon).`;
-                gameState.buildMode = 'robber';
-                render();
-                return;
-            }
-            
-            // Distribute resources
-            gameState.players.forEach(player => {
-                player.wastePlants.forEach(plantId => {
-                    const vertex = VERTICES.find(v => v.id === plantId);
-                    if (vertex) {
-                        vertex.tiles.forEach(tileId => {
-                            const tile = BOARD_TILES.find(t => t.id === tileId);
-                            if (tile && tile.number === gameState.lastRoll && 
-                                (!gameState.robberEnabled || gameState.robberTile !== tileId)) {
-                                if (player.resources[tile.type] !== undefined) {
-                                    player.resources[tile.type]++;
+            setTimeout(() => {
+                const d1 = Math.floor(Math.random() * 6) + 1;
+                const d2 = Math.floor(Math.random() * 6) + 1;
+                gameState.dice = [d1, d2];
+                gameState.lastRoll = d1 + d2;
+                gameState.diceRolling = false;
+                
+                if (gameState.robberEnabled && gameState.lastRoll === 7) {
+                    gameState.message = `🎲 Rolled 7! 👹 Move the robber to a new tile (click on a hexagon).`;
+                    gameState.buildMode = 'robber';
+                    gameState.robberPlayer = gameState.currentPlayer; // Track who rolled 7
+                    render();
+                    return;
+                }
+                
+                // Distribute resources
+                gameState.players.forEach(player => {
+                    player.wastePlants.forEach(plantId => {
+                        const vertex = VERTICES.find(v => v.id === plantId);
+                        if (vertex) {
+                            vertex.tiles.forEach(tileId => {
+                                const tile = BOARD_TILES.find(t => t.id === tileId);
+                                if (tile && tile.number === gameState.lastRoll && 
+                                    (!gameState.robberEnabled || gameState.robberTile !== tileId)) {
+                                    if (player.resources[tile.type] !== undefined) {
+                                        player.resources[tile.type]++;
+                                    }
                                 }
-                            }
-                        });
-                    }
+                            });
+                        }
+                    });
+                    
+                    player.incinerationPlants.forEach(plantId => {
+                        const vertex = VERTICES.find(v => v.id === plantId);
+                        if (vertex) {
+                            vertex.tiles.forEach(tileId => {
+                                const tile = BOARD_TILES.find(t => t.id === tileId);
+                                if (tile && tile.number === gameState.lastRoll && 
+                                    (!gameState.robberEnabled || gameState.robberTile !== tileId)) {
+                                    if (player.resources[tile.type] !== undefined) {
+                                        player.resources[tile.type] += 2;
+                                    }
+                                }
+                            });
+                        }
+                    });
                 });
                 
-                player.incinerationPlants.forEach(plantId => {
-                    const vertex = VERTICES.find(v => v.id === plantId);
-                    if (vertex) {
-                        vertex.tiles.forEach(tileId => {
-                            const tile = BOARD_TILES.find(t => t.id === tileId);
-                            if (tile && tile.number === gameState.lastRoll && 
-                                (!gameState.robberEnabled || gameState.robberTile !== tileId)) {
-                                if (player.resources[tile.type] !== undefined) {
-                                    player.resources[tile.type] += 2;
-                                }
-                            }
-                        });
-                    }
-                });
-            });
-            
-            gameState.message = `Rolled ${gameState.lastRoll}! Resources distributed.`;
-            render();
+                gameState.message = `🎲 Rolled ${gameState.lastRoll}! Resources distributed to players.`;
+                render();
+            }, 500);
         }
         
         // Build waste plant
@@ -738,7 +964,7 @@
             const player = gameState.players[gameState.currentPlayer];
             
             if (!canAfford(player, 'wastePlant')) {
-                gameState.message = 'Not enough resources to build Waste Plant!';
+                gameState.message = '❌ Not enough resources to build Waste Plant! Check the costs.';
                 render();
                 return;
             }
@@ -748,7 +974,7 @@
             );
             
             if (occupied) {
-                gameState.message = 'This location is already occupied!';
+                gameState.message = '🚫 This location is already occupied!';
                 render();
                 return;
             }
@@ -758,7 +984,7 @@
             player.vp++;
             
             checkWinner(player);
-            gameState.message = `${player.name} built a Waste Plant! +1 VP (Total: ${player.vp})`;
+            gameState.message = `🏭 ${player.name} built a Waste Plant! +1 VP ⭐ (Total: ${player.vp} VP)`;
             gameState.buildMode = null;
             render();
         }
@@ -768,13 +994,13 @@
             const player = gameState.players[gameState.currentPlayer];
             
             if (!canAfford(player, 'incinerationPlant')) {
-                gameState.message = 'Not enough resources to build Incineration Plant!';
+                gameState.message = '❌ Not enough resources to build Incineration Plant!';
                 render();
                 return;
             }
             
             if (!player.wastePlants.includes(vertexId)) {
-                gameState.message = 'You need a Waste Plant here first!';
+                gameState.message = '⚠️ You need a Waste Plant here first to upgrade!';
                 render();
                 return;
             }
@@ -785,7 +1011,7 @@
             player.vp++;
             
             checkWinner(player);
-            gameState.message = `${player.name} built an Incineration Plant! +1 VP (Total: ${player.vp})`;
+            gameState.message = `🏢 ${player.name} built an Incineration Plant! +1 VP ⭐ (Total: ${player.vp} VP)`;
             gameState.buildMode = null;
             render();
         }
@@ -815,7 +1041,7 @@
                 checkWinner(player);
             }
             
-            gameState.message = `${player.name} bought a development card: ${card}!`;
+            gameState.message = `🎴 ${player.name} bought a development card: ${card}!`;
             render();
         }
         
@@ -832,14 +1058,20 @@
             if (cardType === 'knight') {
                 player.knights++;
                 checkLargestArmy();
-                gameState.message = `${player.name} played a Knight! Move the robber (click on a hexagon).`;
-                gameState.buildMode = 'robber';
+                
+                if (gameState.robberEnabled) {
+                    gameState.message = `⚔️ ${player.name} played a Knight! 👹 Move the robber to steal resources (click on a hexagon). You'll get 2x resources from that tile!`;
+                    gameState.buildMode = 'robber';
+                    gameState.robberPlayer = gameState.currentPlayer;
+                } else {
+                    gameState.message = `⚔️ ${player.name} played a Knight! (Robber mechanic is disabled, so no robber movement)`;
+                }
             } else if (cardType === 'roadBuilding') {
-                gameState.message = `${player.name} played Road Building! (Feature coming soon)`;
+                gameState.message = `🛣️ ${player.name} played Road Building! (Feature coming soon)`;
             } else if (cardType === 'yearOfPlenty') {
-                gameState.message = `${player.name} played Year of Plenty! (Feature coming soon)`;
+                gameState.message = `🌾 ${player.name} played Year of Plenty! (Feature coming soon)`;
             } else if (cardType === 'monopoly') {
-                gameState.message = `${player.name} played Monopoly! (Feature coming soon)`;
+                gameState.message = `💰 ${player.name} played Monopoly! (Feature coming soon)`;
             }
             
             render();
@@ -871,21 +1103,21 @@
             const player = gameState.players[gameState.currentPlayer];
             
             if ((player.resources[resource] || 0) < 4) {
-                gameState.message = `Need 4 ${RESOURCE_NAMES[resource]} to trade with bank!`;
+                gameState.message = `❌ Need 4 ${RESOURCE_NAMES[resource]} to trade with bank!`;
                 render();
                 return;
             }
             
             player.resources[resource] -= 4;
             gameState.tradingResource = resource;
-            gameState.message = `Select a resource to receive from the bank:`;
+            gameState.message = `🏦 Select a resource to receive from the bank:`;
             render();
         }
         
         function completeBankTrade(getResource) {
             const player = gameState.players[gameState.currentPlayer];
             player.resources[getResource]++;
-            gameState.message = `Traded 4 ${RESOURCE_NAMES[gameState.tradingResource]} for 1 ${RESOURCE_NAMES[getResource]}!`;
+            gameState.message = `✅ Traded 4 ${RESOURCE_NAMES[gameState.tradingResource]} for 1 ${RESOURCE_NAMES[getResource]}!`;
             gameState.tradeMode = null;
             gameState.tradingResource = null;
             render();
@@ -894,15 +1126,29 @@
         // Move robber
         function moveRobber(tileId) {
             if (tileId === gameState.robberTile) {
-                gameState.message = 'Robber must move to a different tile!';
+                gameState.message = '🚫 Robber must move to a different tile!';
                 render();
                 return;
             }
             
-            gameState.robberTile = tileId;
             const tile = BOARD_TILES.find(t => t.id === tileId);
-            gameState.message = `Robber moved to ${tile.type === 'desert' ? 'desert' : RESOURCE_NAMES[tile.type]}!`;
+            gameState.robberTile = tileId;
+            
+            // Give double resources from the robber tile to the player who placed it (knight player)
+            if (gameState.robberPlayer !== null && tile.type !== 'desert') {
+                const robberPlayer = gameState.players[gameState.robberPlayer];
+                if (robberPlayer.resources[tile.type] !== undefined) {
+                    robberPlayer.resources[tile.type] += 2;
+                    gameState.message = `👹 Robber moved to ${RESOURCE_NAMES[tile.type]}! ${robberPlayer.name} received 2x ${RESOURCE_NAMES[tile.type]} resources! 💰`;
+                } else {
+                    gameState.message = `👹 Robber moved to ${tile.type === 'desert' ? 'desert' : RESOURCE_NAMES[tile.type]}!`;
+                }
+            } else {
+                gameState.message = `👹 Robber moved to ${tile.type === 'desert' ? 'desert' : RESOURCE_NAMES[tile.type]}!`;
+            }
+            
             gameState.buildMode = null;
+            gameState.robberPlayer = null; // Reset robber player after moving
             render();
         }
         
@@ -920,7 +1166,7 @@
             gameState.buildMode = null;
             gameState.tradeMode = null;
             gameState.tradingResource = null;
-            gameState.message = `${gameState.players[gameState.currentPlayer].name}'s turn! Roll the dice.`;
+            gameState.message = `🎯 ${gameState.players[gameState.currentPlayer].name}'s turn! Roll the dice to begin. 🎲`;
             render();
         }
         
@@ -929,11 +1175,11 @@
             return `
                 <div class="setup-screen">
                     <h1>⚡ Energy Catan ⚡</h1>
-                    <p>Build a sustainable energy empire!</p>
+                    <p>🌍 Build a sustainable energy empire! 🏭</p>
                     
                     <div class="setup-options">
                         <div class="option-group">
-                            <label for="numPlayers">Number of Players:</label>
+                            <label for="numPlayers">👥 Number of Players:</label>
                             <select id="numPlayers" onchange="gameState.numPlayers = parseInt(this.value)">
                                 <option value="2">2 Players</option>
                                 <option value="3" selected>3 Players</option>
@@ -945,11 +1191,11 @@
                             <input type="checkbox" id="robberToggle" 
                                 ${gameState.robberEnabled ? 'checked' : ''}
                                 onchange="gameState.robberEnabled = this.checked">
-                            <label for="robberToggle">Enable Robber Mechanic</label>
+                            <label for="robberToggle">👹 Enable Robber Mechanic</label>
                         </div>
                         
                         <button class="start-button" onclick="startGame()">
-                            Start Game
+                            🎮 Start Game 🎮
                         </button>
                     </div>
                 </div>
@@ -965,11 +1211,12 @@
             }).join(' ');
             
             const hasRobber = gameState.robberEnabled && gameState.robberTile === tile.id;
-            const color = tile.type === 'desert' ? '#fbbf24' : RESOURCE_COLORS[tile.type];
+            const patternId = `pattern-${tile.type}-${tile.id}`;
             
             return `
+                ${renderResourcePattern(tile)}
                 <g class="hex" onclick="${gameState.buildMode === 'robber' ? `moveRobber(${tile.id})` : ''}">
-                    <polygon points="${points}" fill="${color}" stroke="#2d3748" stroke-width="3"/>
+                    <polygon points="${points}" fill="url(#${patternId})" stroke="#2d3748" stroke-width="3"/>
                     ${tile.number > 0 ? `
                         <circle cx="${tile.x}" cy="${tile.y}" r="20" fill="white" stroke="#2d3748" stroke-width="2"/>
                         <text x="${tile.x}" y="${tile.y + 7}" text-anchor="middle" 
@@ -977,9 +1224,14 @@
                             fill="${tile.number === 6 || tile.number === 8 ? '#dc2626' : '#2d3748'}">
                             ${tile.number}
                         </text>
+                        ${tile.number === 6 || tile.number === 8 ? `
+                            <circle cx="${tile.x}" cy="${tile.y}" r="24" fill="none" stroke="#dc2626" stroke-width="1.5" opacity="0.5"/>
+                        ` : ''}
                     ` : ''}
                     ${hasRobber ? `
                         <circle cx="${tile.x}" cy="${tile.y}" r="15" fill="#1f2937" stroke="#000" stroke-width="2"/>
+                        <circle cx="${tile.x - 3}" cy="${tile.y - 2}" r="2" fill="#dc2626"/>
+                        <circle cx="${tile.x + 3}" cy="${tile.y - 2}" r="2" fill="#dc2626"/>
                     ` : ''}
                 </g>
             `;
@@ -989,23 +1241,24 @@
             const wastePlant = gameState.players.find(p => p.wastePlants.includes(vertex.id));
             const incinerationPlant = gameState.players.find(p => p.incinerationPlants.includes(vertex.id));
             
-            const color = incinerationPlant ? incinerationPlant.color : 
-                         wastePlant ? wastePlant.color : 'white';
-            
             const onClick = gameState.buildMode === 'wastePlant' ? `buildWastePlant('${vertex.id}')` :
                            gameState.buildMode === 'incinerationPlant' ? `buildIncinerationPlant('${vertex.id}')` : '';
             
+            // Check if this is a newly built structure
+            const isNew = false; // We'll track this in game state if needed
+            
             return `
                 <g class="vertex" onclick="${onClick}">
-                    <circle cx="${vertex.x}" cy="${vertex.y}" r="10" 
-                        fill="${color}" stroke="#2d3748" stroke-width="2.5"/>
-                    ${incinerationPlant ? `
-                        <rect x="${vertex.x - 8}" y="${vertex.y - 8}" width="16" height="16" 
-                            fill="${incinerationPlant.color}" stroke="#2d3748" stroke-width="2.5"/>
+                    ${!wastePlant && !incinerationPlant ? `
+                        <circle cx="${vertex.x}" cy="${vertex.y}" r="8" 
+                            fill="white" stroke="#2d3748" stroke-width="2.5" opacity="0.7"/>
                     ` : ''}
+                    ${wastePlant ? renderWastePlantSymbol(vertex.x, vertex.y, wastePlant.color, isNew) : ''}
+                    ${incinerationPlant ? renderIncinerationPlantSymbol(vertex.x, vertex.y, incinerationPlant.color, isNew) : ''}
                 </g>
             `;
         }
+
         
         function renderGameScreen() {
             const player = gameState.players[gameState.currentPlayer];
@@ -1069,11 +1322,11 @@
                             <div class="control-title">${player.name}'s Turn</div>
                             
                             <div class="dice-container">
-                                <div class="die">${gameState.dice[0]}</div>
-                                <div class="die">${gameState.dice[1]}</div>
+                                <div class="die ${gameState.diceRolling ? 'dice-rolling' : ''}">${renderDiceDots(gameState.dice[0])}</div>
+                                <div class="die ${gameState.diceRolling ? 'dice-rolling' : ''}">${renderDiceDots(gameState.dice[1])}</div>
                                 ${gameState.lastRoll ? `<div class="roll-total">= ${gameState.lastRoll}</div>` : ''}
                                 <button class="btn btn-primary" onclick="rollDice()" style="margin: 0; padding: 8px 16px;">
-                                    Roll
+                                    🎲 Roll
                                 </button>
                             </div>
                             
@@ -1082,31 +1335,31 @@
                             <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
                                 onclick="gameState.buildMode = gameState.buildMode === 'wastePlant' ? null : 'wastePlant'; render()"
                                 ${!canAfford(player, 'wastePlant') ? 'disabled' : ''}>
-                                ${gameState.buildMode === 'wastePlant' ? 'Cancel' : 'Build Waste Plant (1 VP)'}
-                                <span class="cost-label">Cost: M1 G1 E1 L1</span>
+                                ${gameState.buildMode === 'wastePlant' ? '❌ Cancel' : '🏭 Build Waste Plant (1 VP)'}
+                                <span class="cost-label">💰 M1 🗑️ G1 ⚡ E1 📜 L1</span>
                             </button>
                             
                             <button class="btn btn-warning ${gameState.buildMode === 'incinerationPlant' ? 'active' : ''}"
                                 onclick="gameState.buildMode = gameState.buildMode === 'incinerationPlant' ? null : 'incinerationPlant'; render()"
                                 ${!canAfford(player, 'incinerationPlant') ? 'disabled' : ''}>
-                                ${gameState.buildMode === 'incinerationPlant' ? 'Cancel' : 'Build Incineration Plant (2 VP)'}
-                                <span class="cost-label">Cost: G2 M3 (Upgrade)</span>
+                                ${gameState.buildMode === 'incinerationPlant' ? '❌ Cancel' : '🏢 Build Incineration Plant (2 VP)'}
+                                <span class="cost-label">🗑️ G2 💰 M3 (Upgrade)</span>
                             </button>
                             
                             <button class="btn btn-info"
                                 onclick="buyDevCard()"
                                 ${!canAfford(player, 'devCard') ? 'disabled' : ''}>
-                                Buy Development Card
-                                <span class="cost-label">Cost: G1 E1 M1</span>
+                                🎴 Buy Development Card
+                                <span class="cost-label">🗑️ G1 ⚡ E1 💰 M1</span>
                             </button>
                             
                             <button class="btn btn-success ${gameState.tradeMode ? 'active' : ''}"
                                 onclick="gameState.tradeMode = gameState.tradeMode ? null : 'bank'; render()">
-                                ${gameState.tradeMode ? 'Cancel Trade' : 'Bank Trade (4:1)'}
+                                ${gameState.tradeMode ? '❌ Cancel Trade' : '🏦 Bank Trade (4:1)'}
                             </button>
                             
                             <button class="btn btn-secondary" onclick="endTurn()">
-                                End Turn
+                                ⏭️ End Turn
                             </button>
                             
                             ${gameState.tradeMode === 'bank' ? `
@@ -1200,7 +1453,7 @@
             gameState.players = initializePlayers(gameState.numPlayers);
             gameState.devCardDeck = createDevCardDeck();
             gameState.screen = 'game';
-            gameState.message = `${gameState.players[0].name}'s turn! Roll the dice to begin.`;
+            gameState.message = `🎯 ${gameState.players[0].name}'s turn! 🎲 Roll the dice to begin your energy empire!`;
             render();
         }
         
