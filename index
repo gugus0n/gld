@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Catan Game</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const RESOURCES = ['wood','brick','sheep','wheat','ore'];
+    const RESOURCE_COLORS = {
+      wood: '#228B22', brick: '#8B4513', sheep: '#90EE90',
+      wheat: '#FFD700', ore: '#808080', desert: '#F4A460'
+    };
+
+    const BUILDING_COSTS = {
+      settlement: { wood:1, brick:1, sheep:1, wheat:1 },
+      city: { wheat:2, ore:3 },
+      road: { wood:1, brick:1 }
+    };
+
+    const BOARD_TILES = [
+      { id:0, type:'wheat', number:6, x:250, y:50 },
+      { id:1, type:'ore', number:3, x:350, y:50 },
+      { id:2, type:'sheep', number:8, x:450, y:50 },
+      { id:3, type:'brick', number:4, x:200, y:135 },
+      { id:4, type:'wood', number:5, x:300, y:135 },
+      { id:5, type:'wheat', number:10, x:400, y:135 },
+      { id:6, type:'sheep', number:9, x:500, y:135 },
+      { id:7, type:'wood', number:11, x:150, y:220 },
+      { id:8, type:'sheep', number:12, x:250, y:220 },
+      { id:9, type:'desert', number:0, x:350, y:220 },
+      { id:10, type:'brick', number:8, x:450, y:220 },
+      { id:11, type:'ore', number:3, x:550, y:220 },
+      { id:12, type:'wheat', number:4, x:200, y:305 },
+      { id:13, type:'ore', number:5, x:300, y:305 },
+      { id:14, type:'wood', number:6, x:400, y:305 },
+      { id:15, type:'brick', number:9, x:500, y:305 },
+      { id:16, type:'sheep', number:10, x:250, y:390 },
+      { id:17, type:'wheat', number:11, x:350, y:390 },
+      { id:18, type:'wood', number:2, x:450, y:390 }
+    ];
+
+    const VERTICES = BOARD_TILES.flatMap(tile => {
+      const angles=[0,60,120,180,240,300];
+      return angles.map((angle,i)=>{
+        const rad=(angle*Math.PI)/180;
+        return { id:`${tile.id}-${i}`, x:tile.x+Math.cos(rad)*45, y:tile.y+Math.sin(rad)*45, tiles:[tile.id] };
+      });
+    }).filter((v,i,arr)=>arr.findIndex(other => Math.abs(other.x-v.x)<5 && Math.abs(other.y-v.y)<5)===i);
+
+    const DiceIcon = ({value}) => {
+      // Simple numeric dice representation (replace with SVG if you want)
+      return <div className="w-6 h-6 flex items-center justify-center font-bold">{value}</div>;
+    };
+
+    const Hexagon = ({tile, onClick}) => {
+      const points=Array.from({length:6},(_,i)=>{
+        const angle=(60*i-30)*Math.PI/180;
+        const x=tile.x+Math.cos(angle)*50;
+        const y=tile.y+Math.sin(angle)*50;
+        return `${x},${y}`;
+      }).join(' ');
+      return (
+        <g onClick={()=>onClick && onClick(tile)}>
+          <polygon points={points} fill={RESOURCE_COLORS[tile.type]} stroke="#333" strokeWidth="2" className="cursor-pointer hover:opacity-80" />
+          {tile.number>0 && (
+            <>
+              <circle cx={tile.x} cy={tile.y} r="18" fill="white" stroke="#333" strokeWidth="2"/>
+              <text x={tile.x} y={tile.y+6} textAnchor="middle" fontSize="18" fontWeight="bold" fill={tile.number===6||tile.number===8?'red':'black'}>
+                {tile.number}
+              </text>
+            </>
+          )}
+        </g>
+      );
+    };
+
+    function CatanGame(){
+      const [players,setPlayers]=useState([
+        { name:'P1', resources:{wood:2,brick:2,sheep:2,wheat:2,ore:0}, settlements:[], cities:[], roads:[], vp:0, color:'#3B82F6' },
+        { name:'P2', resources:{wood:2,brick:2,sheep:2,wheat:2,ore:0}, settlements:[], cities:[], roads:[], vp:0, color:'#EF4444' },
+        { name:'P3', resources:{wood:2,brick:2,sheep:2,wheat:2,ore:0}, settlements:[], cities:[], roads:[], vp:0, color:'#10B981' }
+      ]);
+      const [currentPlayer,setCurrentPlayer]=useState(0);
+      const [dice,setDice]=useState([1,1]);
+      const [lastRoll,setLastRoll]=useState(null);
+      const [message,setMessage]=useState('Click on a vertex to place your first settlement!');
+      const [buildMode,setBuildMode]=useState(null);
+
+      const rollDice=()=>{
+        const d1=Math.floor(Math.random()*6)+1;
+        const d2=Math.floor(Math.random()*6)+1;
+        setDice([d1,d2]);
+        const total=d1+d2;
+        setLastRoll(total);
+        const newPlayers = JSON.parse(JSON.stringify(players));
+        players.forEach((player, idx) => {
+          player.settlements.forEach(settlement => {
+            const vertex = VERTICES.find(v => v.id === settlement);
+            if (vertex) vertex.tiles.forEach(tileId => {
+              const tile = BOARD_TILES.find(t => t.id === tileId);
+              if (tile && tile.number === total) newPlayers[idx].resources[tile.type] = (newPlayers[idx].resources[tile.type]||0)+1;
+            });
+          });
+          player.cities.forEach(city => {
+            const vertex = VERTICES.find(v=>v.id===city);
+            if (vertex) vertex.tiles.forEach(tileId=>{
+              const tile = BOARD_TILES.find(t=>t.id===tileId);
+              if (tile && tile.number===total) newPlayers[idx].resources[tile.type] = (newPlayers[idx].resources[tile.type]||0)+2;
+            });
+          });
+        });
+        setPlayers(newPlayers);
+        setMessage(`Rolled ${total}! Resources distributed.`);
+      };
+
+      const canAfford=(playerIdx,building)=>{
+        const player=players[playerIdx];
+        const cost=BUILDING_COSTS[building];
+        return Object.keys(cost).every(resource=>player.resources[resource]>=cost[resource]);
+      };
+
+      const handleVertexClick=(vertex)=>{
+        if(buildMode==='settlement'){
+          if(!canAfford(currentPlayer,'settlement')){ setMessage('Not enough resources!'); return; }
+          const occupied=players.some(p => p.settlements.includes(vertex.id) || p.cities.includes(vertex.id));
+          if(occupied){ setMessage('Vertex already occupied!'); return; }
+          const newPlayers = JSON.parse(JSON.stringify(players));
+          const p = newPlayers[currentPlayer];
+          Object.keys(BUILDING_COSTS.settlement).forEach(r => p.resources[r]-=BUILDING_COSTS.settlement[r]);
+          p.settlements.push(vertex.id); p.vp+=1;
+          setPlayers(newPlayers); setMessage('Settlement built! +1 VP'); setBuildMode(null);
+        } else if(buildMode==='city'){
+          if(!canAfford(currentPlayer,'city')){ setMessage('Not enough resources!'); return; }
+          const player = players[currentPlayer];
+          if(!player.settlements.includes(vertex.id)){ setMessage('You need a settlement here first!'); return; }
+          const newPlayers = JSON.parse(JSON.stringify(players));
+          const p = newPlayers[currentPlayer];
+          Object.keys(BUILDING_COSTS.city).forEach(r => p.resources[r]-=BUILDING_COSTS.city[r]);
+          p.settlements = p.settlements.filter(s=>s!==vertex.id);
+          p.cities.push(vertex.id);
+          p.vp+=1;
+          setPlayers(newPlayers); setMessage('City built! +1 VP'); setBuildMode(null);
+        }
+      };
+
+      const endTurn=()=>{ const nextPlayer=(currentPlayer+1)%players.length; setCurrentPlayer(nextPlayer); setMessage(`${players[nextPlayer].name}'s turn! Roll the dice.`); setBuildMode(null); };
+
+      const player = players[currentPlayer];
+
+      return (
+        <div className="min-h-screen bg-amber-50 p-4">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-center mb-4 text-amber-900">Settlers of Catan</h1>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-4">
+                {players.map((p, idx) => (
+                  <div key={idx} className={`p-3 rounded-lg ${idx===currentPlayer ? 'ring-4 ring-amber-500' : ''} bg-white shadow`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-4 h-4 rounded-full" style={{backgroundColor: p.color}}></div>
+                      <h3 className="font-bold">{p.name}</h3>
+                    </div>
+                    <p className="text-xl font-bold text-amber-600">{p.vp} VP</p>
+                    <div className="text-xs grid grid-cols-5 gap-1 mt-2">
+                      {RESOURCES.map(r => (
+                        <div key={r} className="text-center">
+                          <div className="font-bold">{p.resources[r]}</div>
+                          <div className="text-gray-500">{r[0].toUpperCase()}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-white rounded-lg shadow-lg p-4">
+                <svg width="700" height="500" viewBox="0 0 700 500">
+                  {BOARD_TILES.map(tile => <Hexagon key={tile.id} tile={tile} />)}
+                  {VERTICES.map(vertex=>{
+                    const settlement = players.find(p => p.settlements.includes(vertex.id));
+                    const city = players.find(p => p.cities.includes(vertex.id));
+                    return (
+                      <g key={vertex.id}>
+                        <circle cx={vertex.x} cy={vertex.y} r="8" fill={city ? city.color : settlement ? settlement.color : 'white'} stroke="#333" strokeWidth="2" className="cursor-pointer hover:opacity-70" onClick={()=>handleVertexClick(vertex)} />
+                        {city && <rect x={vertex.x-6} y={vertex.y-6} width="12" height="12" fill={city.color} stroke="#333" strokeWidth="2" />}
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg shadow p-4">
+                  <h3 className="font-bold mb-2">{player.name}'s Turn</h3>
+                  <div className="flex gap-2 items-center mb-3">
+                    <DiceIcon value={dice[0]} />
+                    <DiceIcon value={dice[1]} />
+                    <button onClick={rollDice} className="px-4 py-2 bg-amber-600 text-white rounded hover:bg-amber-700 text-sm font-bold">Roll</button>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-3">{message}</p>
+
+                  <div className="space-y-2">
+                    <button onClick={()=>setBuildMode(buildMode==='settlement'?null:'settlement')} disabled={!canAfford(currentPlayer,'settlement')} className={`w-full p-2 rounded text-sm font-bold ${buildMode==='settlement' ? 'bg-amber-700' : 'bg-amber-500'} ${canAfford(currentPlayer,'settlement') ? 'hover:bg-amber-600 text-white' : 'opacity-50'}`}>
+                      {buildMode==='settlement' ? 'Cancel' : 'Build Settlement'}
+                      <div className="text-xs">W1 B1 S1 Wh1</div>
+                    </button>
+
+                    <button onClick={()=>setBuildMode(buildMode==='city'?null:'city')} disabled={!canAfford(currentPlayer,'city')} className={`w-full p-2 rounded text-sm font-bold ${buildMode==='city' ? 'bg-amber-700' : 'bg-amber-500'} ${canAfford(currentPlayer,'city') ? 'hover:bg-amber-600 text-white' : 'opacity-50'}`}>
+                      {buildMode==='city' ? 'Cancel' : 'Build City'}
+                      <div className="text-xs">Wh2 O3</div>
+                    </button>
+
+                    <button onClick={endTurn} className="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700 font-bold text-sm">End Turn</button>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg shadow p-3 text-xs">
+                  <h4 className="font-bold mb-1">How to Play:</h4>
+                  <ul className="list-disc list-inside space-y-1 text-gray-600">
+                    <li>Roll dice to collect resources</li>
+                    <li>Click "Build Settlement" then click a white dot on the board</li>
+                    <li>Upgrade settlements to cities for 2x resources</li>
+                    <li>First to 10 VP wins!</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<CatanGame />);
+  </script>
+</body>
+</html>
