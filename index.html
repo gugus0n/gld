@@ -654,6 +654,47 @@
         
         const VERTICES = generateVertices();
         
+        // Generate edges (connections between vertices for roads)
+        function generateEdges() {
+            const edges = [];
+            const edgeMap = new Map();
+            
+            BOARD_TILES.forEach(tile => {
+                const angles = [0, 60, 120, 180, 240, 300];
+                const tileVertices = angles.map((angle) => {
+                    const rad = (angle * Math.PI) / 180;
+                    const x = Math.round(tile.x + Math.cos(rad) * 50);
+                    const y = Math.round(tile.y + Math.sin(rad) * 50);
+                    return VERTICES.find(v => Math.abs(v.x - x) < 1 && Math.abs(v.y - y) < 1);
+                }).filter(v => v);
+                
+                // Connect adjacent vertices around the hexagon
+                for (let i = 0; i < tileVertices.length; i++) {
+                    const v1 = tileVertices[i];
+                    const v2 = tileVertices[(i + 1) % tileVertices.length];
+                    if (v1 && v2) {
+                        const edgeKey = [v1.id, v2.id].sort().join('-');
+                        if (!edgeMap.has(edgeKey)) {
+                            edgeMap.set(edgeKey, {
+                                id: `e${edges.length}`,
+                                v1: v1.id,
+                                v2: v2.id,
+                                x1: v1.x,
+                                y1: v1.y,
+                                x2: v2.x,
+                                y2: v2.y
+                            });
+                            edges.push(edgeMap.get(edgeKey));
+                        }
+                    }
+                }
+            });
+            
+            return edges;
+        }
+        
+        const EDGES = generateEdges();
+        
         // Enhanced Resource Pattern Rendering with Stylized Landscapes
         function renderResourcePattern(tile) {
             const patternId = `pattern-${tile.type}-${tile.id}`;
@@ -1016,6 +1057,78 @@
             render();
         }
         
+        // Build road
+        function buildRoad(edgeId) {
+            const player = gameState.players[gameState.currentPlayer];
+            
+            if (!canAfford(player, 'road')) {
+                gameState.message = '❌ Not enough resources to build Road!';
+                render();
+                return;
+            }
+            
+            // Check if edge is already occupied
+            const occupied = gameState.players.some(p => p.roads.includes(edgeId));
+            
+            if (occupied) {
+                gameState.message = '🚫 A road already exists here!';
+                render();
+                return;
+            }
+            
+            // Check if player has a connection (settlement, city, or road) at one of the vertices
+            const edge = EDGES.find(e => e.id === edgeId);
+            const hasConnection = player.wastePlants.includes(edge.v1) || 
+                                player.wastePlants.includes(edge.v2) ||
+                                player.incinerationPlants.includes(edge.v1) ||
+                                player.incinerationPlants.includes(edge.v2) ||
+                                player.roads.some(roadId => {
+                                    const road = EDGES.find(e => e.id === roadId);
+                                    return road && (road.v1 === edge.v1 || road.v2 === edge.v1 || 
+                                                   road.v1 === edge.v2 || road.v2 === edge.v2);
+                                });
+            
+            if (!hasConnection) {
+                gameState.message = '⚠️ Roads must connect to your buildings or existing roads!';
+                render();
+                return;
+            }
+            
+            payForBuilding(player, 'road');
+            player.roads.push(edgeId);
+            
+            checkLongestRoad();
+            gameState.message = `🛣️ ${player.name} built a Road!`;
+            gameState.buildMode = null;
+            render();
+        }
+        
+        // Check for longest road (simplified - counts total roads)
+        function checkLongestRoad() {
+            const roadCounts = gameState.players.map(p => ({
+                player: p,
+                count: p.roads.length
+            }));
+            
+            const maxRoads = Math.max(...roadCounts.map(r => r.count));
+            
+            if (maxRoads >= 5) {
+                gameState.players.forEach(p => {
+                    const hadLongestRoad = p.longestRoad;
+                    const hasLongestRoad = p.roads.length === maxRoads && p.roads.length >= 5;
+                    
+                    if (hasLongestRoad && !hadLongestRoad) {
+                        p.longestRoad = true;
+                        p.vp += 2;
+                        checkWinner(p);
+                    } else if (!hasLongestRoad && hadLongestRoad) {
+                        p.longestRoad = false;
+                        p.vp -= 2;
+                    }
+                });
+            }
+        }
+        
         // Buy development card
         function buyDevCard() {
             const player = gameState.players[gameState.currentPlayer];
@@ -1260,6 +1373,25 @@
         }
 
         
+        function renderEdge(edge) {
+            const road = gameState.players.find(p => p.roads.includes(edge.id));
+            const onClick = gameState.buildMode === 'road' ? `buildRoad('${edge.id}')` : '';
+            
+            if (road) {
+                // Render built road
+                return renderRoadSymbol(edge.x1, edge.y1, edge.x2, edge.y2, road.color);
+            } else if (gameState.buildMode === 'road') {
+                // Show available road spots when in build mode
+                return `
+                    <line x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}" 
+                        stroke="#cbd5e0" stroke-width="4" stroke-linecap="round" opacity="0.4"
+                        style="cursor: pointer;" onclick="${onClick}"/>
+                `;
+            }
+            return '';
+        }
+
+        
         function renderGameScreen() {
             const player = gameState.players[gameState.currentPlayer];
             
@@ -1292,6 +1424,11 @@
                                         ⚔️ ${p.knights} Knights ${p.largestArmy ? '(Largest Army +2 VP)' : ''}
                                     </div>
                                 ` : ''}
+                                ${p.roads.length > 0 ? `
+                                    <div class="stats-line">
+                                        🛣️ ${p.roads.length} Roads ${p.longestRoad ? '(Longest Road +2 VP)' : ''}
+                                    </div>
+                                ` : ''}
                                 ${p.devCards.length > 0 ? `
                                     <div class="stats-line">🎴 ${p.devCards.length} Dev Cards</div>
                                 ` : ''}
@@ -1313,6 +1450,7 @@
                             `).join('')}
                             
                             ${BOARD_TILES.map(tile => renderHexagon(tile)).join('')}
+                            ${EDGES.map(edge => renderEdge(edge)).join('')}
                             ${VERTICES.map(vertex => renderVertex(vertex)).join('')}
                         </svg>
                     </div>
@@ -1344,6 +1482,13 @@
                                 ${!canAfford(player, 'incinerationPlant') ? 'disabled' : ''}>
                                 ${gameState.buildMode === 'incinerationPlant' ? '❌ Cancel' : '🏢 Build Incineration Plant (2 VP)'}
                                 <span class="cost-label">🗑️ G2 💰 M3 (Upgrade)</span>
+                            </button>
+                            
+                            <button class="btn btn-warning ${gameState.buildMode === 'road' ? 'active' : ''}"
+                                onclick="gameState.buildMode = gameState.buildMode === 'road' ? null : 'road'; render()"
+                                ${!canAfford(player, 'road') ? 'disabled' : ''}>
+                                ${gameState.buildMode === 'road' ? '❌ Cancel' : '🛣️ Build Road'}
+                                <span class="cost-label">⚡ E1 📜 L1</span>
                             </button>
                             
                             <button class="btn btn-info"
