@@ -1097,23 +1097,6 @@
                 }
                 
                 // Check connection to player's waste plant or existing roads
-                const edge = EDGES.find(e => e.id === edgeId);
-                const hasConnection = player.wastePlants.includes(edge.v1) || 
-                                    player.wastePlants.includes(edge.v2) ||
-                                    player.incinerationPlants.includes(edge.v1) ||
-                                    player.incinerationPlants.includes(edge.v2) ||
-                                    player.roads.some(roadId => {
-                                        const road = EDGES.find(e => e.id === roadId);
-                                        return road && (road.v1 === edge.v1 || road.v2 === edge.v1 || 
-                                                       road.v1 === edge.v2 || road.v2 === edge.v2);
-                                    });
-                
-                if (!hasConnection) {
-                    gameState.message = '⚠️ Roads must connect to your Waste Plant or existing roads!';
-                    render();
-                    return;
-                }
-                
                 player.roads.push(edgeId);
                 gameState.message = `🛣️ ${player.name} placed a road!`;
                 gameState.buildMode = null;
@@ -1134,24 +1117,6 @@
             
             if (occupied) {
                 gameState.message = '🚫 A road already exists here!';
-                render();
-                return;
-            }
-            
-            // Check if player has a connection (settlement, city, or road) at one of the vertices
-            const edge = EDGES.find(e => e.id === edgeId);
-            const hasConnection = player.wastePlants.includes(edge.v1) || 
-                                player.wastePlants.includes(edge.v2) ||
-                                player.incinerationPlants.includes(edge.v1) ||
-                                player.incinerationPlants.includes(edge.v2) ||
-                                player.roads.some(roadId => {
-                                    const road = EDGES.find(e => e.id === roadId);
-                                    return road && (road.v1 === edge.v1 || road.v2 === edge.v1 || 
-                                                   road.v1 === edge.v2 || road.v2 === edge.v2);
-                                });
-            
-            if (!hasConnection) {
-                gameState.message = '⚠️ Roads must connect to your buildings or existing roads!';
                 render();
                 return;
             }
@@ -1752,7 +1717,7 @@
                                     <li>Each round: 1 Waste Plant + 3 Roads</li>
                                     <li>Round 1: Forward order (P1→P2→P3→P4)</li>
                                     <li>Round 2: Reverse order (P4→P3→P2→P1)</li>
-                                    <li>Roads must connect to your Waste Plant!</li>
+                                    <li>Place roads anywhere on the board</li>
                                 </ul>
                             ` : `
                                 <ul>
