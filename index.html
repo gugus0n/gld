@@ -3,432 +3,1209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settlers of Catan</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Energy Catan</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        #app {
+            width: 100%;
+            max-width: 1600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .setup-screen {
+            padding: 60px 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        }
+        
+        .setup-screen h1 {
+            font-size: 3rem;
+            color: #2d3748;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .setup-screen p {
+            font-size: 1.2rem;
+            color: #4a5568;
+            margin-bottom: 40px;
+        }
+        
+        .setup-options {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .option-group {
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        
+        .option-group label {
+            display: block;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .option-group select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 30px 0;
+        }
+        
+        .checkbox-group input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .checkbox-group label {
+            font-size: 1.1rem;
+            color: #2d3748;
+            cursor: pointer;
+        }
+        
+        .start-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 20px 60px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+        }
+        
+        .game-screen {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            background: #f7fafc;
+            min-height: 800px;
+        }
+        
+        .game-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .game-header h1 {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        
+        .players-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .player-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .player-card.active {
+            border-color: #fbbf24;
+            box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
+        }
+        
+        .player-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .player-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #2d3748;
+        }
+        
+        .player-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .player-corner {
+            margin-left: auto;
+            font-size: 0.8rem;
+            color: #718096;
+        }
+        
+        .player-vp {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fbbf24;
+            margin: 10px 0;
+        }
+        
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .resource-item {
+            background: #f7fafc;
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+        
+        .resource-count {
+            font-weight: bold;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 3px;
+        }
+        
+        .resource-name {
+            color: #718096;
+            font-size: 0.75rem;
+        }
+        
+        .board-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .board-svg {
+            width: 100%;
+            height: auto;
+            max-height: 700px;
+        }
+        
+        .hex {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        
+        .hex:hover {
+            opacity: 0.9;
+        }
+        
+        .vertex {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .vertex:hover {
+            opacity: 0.8;
+        }
+        
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .control-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #2d3748;
+        }
+        
+        .dice-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .die {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border: 3px solid #2d3748;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .roll-total {
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background: #38a169;
+        }
+        
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+        
+        .btn-warning:hover:not(:disabled) {
+            background: #dd6b20;
+        }
+        
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-info:hover:not(:disabled) {
+            background: #3182ce;
+        }
+        
+        .btn-secondary {
+            background: #a0aec0;
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #718096;
+        }
+        
+        .btn.active {
+            background: #fc8181;
+            transform: scale(0.95);
+        }
+        
+        .cost-label {
+            display: block;
+            font-size: 0.75rem;
+            margin-top: 4px;
+            opacity: 0.8;
+        }
+        
+        .message-box {
+            padding: 12px;
+            background: #edf2f7;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            min-height: 60px;
+            font-size: 0.9rem;
+            color: #2d3748;
+            line-height: 1.5;
+        }
+        
+        .help-box {
+            padding: 15px;
+            background: #fef3c7;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        
+        .help-box h4 {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #92400e;
+        }
+        
+        .help-box ul {
+            list-style-position: inside;
+            color: #78350f;
+            line-height: 1.8;
+        }
+        
+        .trade-panel {
+            padding: 15px;
+            background: #e6fffa;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .trade-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #234e52;
+        }
+        
+        .trade-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        
+        .trade-btn {
+            padding: 8px;
+            font-size: 0.8rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .trade-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .dev-cards-panel {
+            padding: 15px;
+            background: #fef3c7;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .dev-cards-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #92400e;
+        }
+        
+        .dev-cards-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .dev-card {
+            padding: 6px 12px;
+            background: #8b5cf6;
+            color: white;
+            border-radius: 5px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .dev-card:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .winner-screen {
+            padding: 80px 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        }
+        
+        .winner-screen h1 {
+            font-size: 3.5rem;
+            color: #2d3748;
+            margin-bottom: 30px;
+        }
+        
+        .winner-color {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            border: 5px solid #2d3748;
+        }
+        
+        .winner-name {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .winner-vp {
+            font-size: 2rem;
+            color: #fbbf24;
+            margin-bottom: 40px;
+        }
+        
+        .corner-marker {
+            opacity: 0.2;
+        }
+        
+        .stats-line {
+            font-size: 0.8rem;
+            color: #718096;
+            margin-top: 8px;
+        }
+    </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState } = React;
-
-        const RESOURCES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
+    <div id="app"></div>
+    
+    <script>
+        // Game Constants
+        const RESOURCES = ['money', 'garbage', 'energy', 'license'];
+        
         const RESOURCE_COLORS = {
-          wood: '#228B22',
-          brick: '#8B4513',
-          sheep: '#90EE90',
-          wheat: '#FFD700',
-          ore: '#808080',
-          desert: '#F4A460'
+            money: '#22c55e',
+            garbage: '#6b7280',
+            energy: '#3b82f6',
+            license: '#e5e7eb'
         };
-
+        
+        const RESOURCE_NAMES = {
+            money: 'Money',
+            garbage: 'Garbage',
+            energy: 'Energy',
+            license: 'License'
+        };
+        
         const BUILDING_COSTS = {
-          settlement: { wood: 1, brick: 1, sheep: 1, wheat: 1 },
-          city: { wheat: 2, ore: 3 },
-          road: { wood: 1, brick: 1 }
+            wastePlant: { money: 1, garbage: 1, energy: 1, license: 1 },
+            incinerationPlant: { garbage: 2, money: 3 },
+            road: { energy: 1, license: 1 },
+            devCard: { garbage: 1, energy: 1, money: 1 }
         };
-
-        const BOARD_TILES = [
-          { id: 0, type: 'wheat', number: 6, x: 250, y: 50 },
-          { id: 1, type: 'ore', number: 3, x: 350, y: 50 },
-          { id: 2, type: 'sheep', number: 8, x: 450, y: 50 },
-          
-          { id: 3, type: 'brick', number: 4, x: 200, y: 135 },
-          { id: 4, type: 'wood', number: 5, x: 300, y: 135 },
-          { id: 5, type: 'wheat', number: 10, x: 400, y: 135 },
-          { id: 6, type: 'sheep', number: 9, x: 500, y: 135 },
-          
-          { id: 7, type: 'wood', number: 11, x: 150, y: 220 },
-          { id: 8, type: 'sheep', number: 12, x: 250, y: 220 },
-          { id: 9, type: 'desert', number: 0, x: 350, y: 220 },
-          { id: 10, type: 'brick', number: 8, x: 450, y: 220 },
-          { id: 11, type: 'ore', number: 3, x: 550, y: 220 },
-          
-          { id: 12, type: 'wheat', number: 4, x: 200, y: 305 },
-          { id: 13, type: 'ore', number: 5, x: 300, y: 305 },
-          { id: 14, type: 'wood', number: 6, x: 400, y: 305 },
-          { id: 15, type: 'brick', number: 9, x: 500, y: 305 },
-          
-          { id: 16, type: 'sheep', number: 10, x: 250, y: 390 },
-          { id: 17, type: 'wheat', number: 11, x: 350, y: 390 },
-          { id: 18, type: 'wood', number: 2, x: 450, y: 390 }
+        
+        const STARTING_CORNERS = [
+            { id: 'major', name: 'Major', x: 100, y: 80, color: '#ef4444' },
+            { id: 'builder', name: 'Builder', x: 620, y: 80, color: '#3b82f6' },
+            { id: 'investor', name: 'Investor', x: 100, y: 520, color: '#10b981' },
+            { id: 'supplier', name: 'Supplier', x: 620, y: 520, color: '#f59e0b' }
         ];
-
-        const VERTICES = BOARD_TILES.flatMap(tile => {
-          const angles = [0, 60, 120, 180, 240, 300];
-          return angles.map((angle, i) => {
-            const rad = (angle * Math.PI) / 180;
-            return {
-              id: `${tile.id}-${i}`,
-              x: tile.x + Math.cos(rad) * 45,
-              y: tile.y + Math.sin(rad) * 45,
-              tiles: [tile.id]
-            };
-          });
-        }).filter((v, i, arr) => {
-          return arr.findIndex(other => 
-            Math.abs(other.x - v.x) < 5 && Math.abs(other.y - v.y) < 5
-          ) === i;
-        });
-
-        const DiceIcon = ({ value }) => {
-          const dots = {
-            1: [[50, 50]],
-            2: [[30, 30], [70, 70]],
-            3: [[30, 30], [50, 50], [70, 70]],
-            4: [[30, 30], [70, 30], [30, 70], [70, 70]],
-            5: [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
-            6: [[30, 30], [70, 30], [30, 50], [70, 50], [30, 70], [70, 70]]
-          };
-
-          return (
-            <svg width="24" height="24" viewBox="0 0 100 100" className="inline-block">
-              <rect width="100" height="100" rx="15" fill="white" stroke="black" strokeWidth="3"/>
-              {dots[value].map((pos, i) => (
-                <circle key={i} cx={pos[0]} cy={pos[1]} r="8" fill="black"/>
-              ))}
-            </svg>
-          );
+        
+        const DEV_CARD_TYPES = {
+            knight: 14,
+            victory: 5,
+            roadBuilding: 2,
+            yearOfPlenty: 2,
+            monopoly: 2
         };
-
-        const Hexagon = ({ tile, onClick }) => {
-          const points = Array.from({ length: 6 }, (_, i) => {
-            const angle = (60 * i - 30) * Math.PI / 180;
-            const x = tile.x + Math.cos(angle) * 50;
-            const y = tile.y + Math.sin(angle) * 50;
-            return `${x},${y}`;
-          }).join(' ');
-
-          return (
-            <g onClick={() => onClick && onClick(tile)}>
-              <polygon 
-                points={points} 
-                fill={RESOURCE_COLORS[tile.type]}
-                stroke="#333"
-                strokeWidth="2"
-                style={{cursor: 'pointer'}}
-              />
-              {tile.number > 0 && (
-                <>
-                  <circle cx={tile.x} cy={tile.y} r="18" fill="white" stroke="#333" strokeWidth="2"/>
-                  <text 
-                    x={tile.x} 
-                    y={tile.y + 6} 
-                    textAnchor="middle" 
-                    fontSize="18" 
-                    fontWeight="bold"
-                    fill={tile.number === 6 || tile.number === 8 ? 'red' : 'black'}
-                  >
-                    {tile.number}
-                  </text>
-                </>
-              )}
-            </g>
-          );
-        };
-
-        function CatanGame() {
-          const [players, setPlayers] = useState([
-            { name: 'P1', resources: { wood: 2, brick: 2, sheep: 2, wheat: 2, ore: 0 }, settlements: [], cities: [], roads: [], vp: 0, color: '#3B82F6' },
-            { name: 'P2', resources: { wood: 2, brick: 2, sheep: 2, wheat: 2, ore: 0 }, settlements: [], cities: [], roads: [], vp: 0, color: '#EF4444' },
-            { name: 'P3', resources: { wood: 2, brick: 2, sheep: 2, wheat: 2, ore: 0 }, settlements: [], cities: [], roads: [], vp: 0, color: '#10B981' }
-          ]);
-          const [currentPlayer, setCurrentPlayer] = useState(0);
-          const [dice, setDice] = useState([1, 1]);
-          const [lastRoll, setLastRoll] = useState(null);
-          const [message, setMessage] = useState('Click on a vertex to place your first settlement!');
-          const [buildMode, setBuildMode] = useState(null);
-
-          const rollDice = () => {
-            const d1 = Math.floor(Math.random() * 6) + 1;
-            const d2 = Math.floor(Math.random() * 6) + 1;
-            setDice([d1, d2]);
-            const total = d1 + d2;
-            setLastRoll(total);
+        
+        const BOARD_TILES = [
+            { id: 0, type: 'garbage', number: 6, x: 260, y: 90 },
+            { id: 1, type: 'money', number: 3, x: 360, y: 90 },
+            { id: 2, type: 'license', number: 8, x: 460, y: 90 },
             
-            const newPlayers = [...players];
-            players.forEach((player, idx) => {
-              player.settlements.forEach(settlement => {
-                const vertex = VERTICES.find(v => v.id === settlement);
-                if (vertex) {
-                  vertex.tiles.forEach(tileId => {
-                    const tile = BOARD_TILES.find(t => t.id === tileId);
-                    if (tile && tile.number === total) {
-                      newPlayers[idx].resources[tile.type] = (newPlayers[idx].resources[tile.type] || 0) + 1;
+            { id: 3, type: 'energy', number: 4, x: 210, y: 177 },
+            { id: 4, type: 'license', number: 5, x: 310, y: 177 },
+            { id: 5, type: 'garbage', number: 10, x: 410, y: 177 },
+            { id: 6, type: 'license', number: 9, x: 510, y: 177 },
+            
+            { id: 7, type: 'license', number: 11, x: 160, y: 264 },
+            { id: 8, type: 'garbage', number: 12, x: 260, y: 264 },
+            { id: 9, type: 'desert', number: 0, x: 360, y: 264 },
+            { id: 10, type: 'energy', number: 8, x: 460, y: 264 },
+            { id: 11, type: 'money', number: 3, x: 560, y: 264 },
+            
+            { id: 12, type: 'garbage', number: 4, x: 210, y: 351 },
+            { id: 13, type: 'money', number: 5, x: 310, y: 351 },
+            { id: 14, type: 'license', number: 6, x: 410, y: 351 },
+            { id: 15, type: 'energy', number: 9, x: 510, y: 351 },
+            
+            { id: 16, type: 'garbage', number: 10, x: 260, y: 438 },
+            { id: 17, type: 'energy', number: 11, x: 360, y: 438 },
+            { id: 18, type: 'money', number: 2, x: 460, y: 438 }
+        ];
+        
+        // Calculate vertices
+        function generateVertices() {
+            const vertices = [];
+            const vertexMap = new Map();
+            
+            BOARD_TILES.forEach(tile => {
+                const angles = [0, 60, 120, 180, 240, 300];
+                angles.forEach((angle, i) => {
+                    const rad = (angle * Math.PI) / 180;
+                    const x = tile.x + Math.cos(rad) * 50;
+                    const y = tile.y + Math.sin(rad) * 50;
+                    const key = `${Math.round(x)},${Math.round(y)}`;
+                    
+                    if (!vertexMap.has(key)) {
+                        vertexMap.set(key, {
+                            id: `v${vertices.length}`,
+                            x: Math.round(x),
+                            y: Math.round(y),
+                            tiles: [tile.id]
+                        });
+                        vertices.push(vertexMap.get(key));
+                    } else {
+                        vertexMap.get(key).tiles.push(tile.id);
                     }
-                  });
-                }
-              });
-              
-              player.cities.forEach(city => {
-                const vertex = VERTICES.find(v => v.id === city);
-                if (vertex) {
-                  vertex.tiles.forEach(tileId => {
-                    const tile = BOARD_TILES.find(t => t.id === tileId);
-                    if (tile && tile.number === total) {
-                      newPlayers[idx].resources[tile.type] = (newPlayers[idx].resources[tile.type] || 0) + 2;
-                    }
-                  });
-                }
-              });
+                });
             });
             
-            setPlayers(newPlayers);
-            setMessage(`Rolled ${total}! Resources distributed.`);
-          };
-
-          const canAfford = (playerIdx, building) => {
-            const player = players[playerIdx];
-            const cost = BUILDING_COSTS[building];
-            return Object.keys(cost).every(resource => player.resources[resource] >= cost[resource]);
-          };
-
-          const handleVertexClick = (vertex) => {
-            if (buildMode === 'settlement') {
-              if (!canAfford(currentPlayer, 'settlement')) {
-                setMessage('Not enough resources!');
-                return;
-              }
-              
-              const occupied = players.some(p => 
-                p.settlements.includes(vertex.id) || p.cities.includes(vertex.id)
-              );
-              
-              if (occupied) {
-                setMessage('Vertex already occupied!');
-                return;
-              }
-              
-              const newPlayers = [...players];
-              const player = newPlayers[currentPlayer];
-              
-              Object.keys(BUILDING_COSTS.settlement).forEach(resource => {
-                player.resources[resource] -= BUILDING_COSTS.settlement[resource];
-              });
-              
-              player.settlements.push(vertex.id);
-              player.vp += 1;
-              setPlayers(newPlayers);
-              setMessage('Settlement built! +1 VP');
-              setBuildMode(null);
-            } else if (buildMode === 'city') {
-              if (!canAfford(currentPlayer, 'city')) {
-                setMessage('Not enough resources!');
-                return;
-              }
-              
-              const player = players[currentPlayer];
-              if (!player.settlements.includes(vertex.id)) {
-                setMessage('You need a settlement here first!');
-                return;
-              }
-              
-              const newPlayers = [...players];
-              const p = newPlayers[currentPlayer];
-              
-              Object.keys(BUILDING_COSTS.city).forEach(resource => {
-                p.resources[resource] -= BUILDING_COSTS.city[resource];
-              });
-              
-              p.settlements = p.settlements.filter(s => s !== vertex.id);
-              p.cities.push(vertex.id);
-              p.vp += 1;
-              setPlayers(newPlayers);
-              setMessage('City built! +1 VP');
-              setBuildMode(null);
-            }
-          };
-
-          const endTurn = () => {
-            const nextPlayer = (currentPlayer + 1) % players.length;
-            setCurrentPlayer(nextPlayer);
-            setMessage(`${players[nextPlayer].name}'s turn! Roll the dice.`);
-            setBuildMode(null);
-          };
-
-          const player = players[currentPlayer];
-
-          return (
-            <div style={{minHeight: '100vh', backgroundColor: '#fef3c7', padding: '1rem'}}>
-              <div style={{maxWidth: '1400px', margin: '0 auto'}}>
-                <h1 style={{fontSize: '1.875rem', fontWeight: 'bold', textAlign: 'center', marginBottom: '1rem', color: '#78350f'}}>
-                  Settlers of Catan
-                </h1>
-                
-                <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem'}}>
-                  {/* Left Panel */}
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                    {players.map((p, idx) => (
-                      <div 
-                        key={idx} 
-                        style={{
-                          padding: '0.75rem', 
-                          borderRadius: '0.5rem', 
-                          backgroundColor: 'white', 
-                          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                          border: idx === currentPlayer ? '4px solid #d97706' : 'none'
-                        }}
-                      >
-                        <div style={{display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem'}}>
-                          <div style={{width: '1rem', height: '1rem', borderRadius: '9999px', backgroundColor: p.color}}></div>
-                          <h3 style={{fontWeight: 'bold'}}>{p.name}</h3>
-                        </div>
-                        <p style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#d97706'}}>{p.vp} VP</p>
-                        <div style={{fontSize: '0.75rem', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.25rem', marginTop: '0.5rem'}}>
-                          {RESOURCES.map(r => (
-                            <div key={r} style={{textAlign: 'center'}}>
-                              <div style={{fontWeight: 'bold'}}>{p.resources[r]}</div>
-                              <div style={{color: '#6b7280'}}>{r[0].toUpperCase()}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Center - Board */}
-                  <div style={{backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', padding: '1rem'}}>
-                    <svg width="100%" height="500" viewBox="0 0 700 500">
-                      {BOARD_TILES.map(tile => (
-                        <Hexagon key={tile.id} tile={tile} />
-                      ))}
-                      
-                      {VERTICES.map(vertex => {
-                        const settlement = players.find(p => p.settlements.includes(vertex.id));
-                        const city = players.find(p => p.cities.includes(vertex.id));
-                        
-                        return (
-                          <g key={vertex.id}>
-                            <circle 
-                              cx={vertex.x} 
-                              cy={vertex.y} 
-                              r="8" 
-                              fill={city ? city.color : settlement ? settlement.color : 'white'}
-                              stroke="#333"
-                              strokeWidth="2"
-                              style={{cursor: 'pointer'}}
-                              onClick={() => handleVertexClick(vertex)}
-                            />
-                            {city && (
-                              <rect 
-                                x={vertex.x - 6} 
-                                y={vertex.y - 6} 
-                                width="12" 
-                                height="12" 
-                                fill={city.color}
-                                stroke="#333"
-                                strokeWidth="2"
-                              />
-                            )}
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  </div>
-
-                  {/* Right Panel */}
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '1rem'}}>
-                    <div style={{backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', padding: '1rem'}}>
-                      <h3 style={{fontWeight: 'bold', marginBottom: '0.5rem'}}>{player.name}'s Turn</h3>
-                      <div style={{display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem'}}>
-                        <DiceIcon value={dice[0]} />
-                        <DiceIcon value={dice[1]} />
-                        <button 
-                          onClick={rollDice} 
-                          style={{
-                            padding: '0.5rem 1rem', 
-                            backgroundColor: '#d97706', 
-                            color: 'white', 
-                            borderRadius: '0.25rem', 
-                            fontSize: '0.875rem', 
-                            fontWeight: 'bold',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Roll
-                        </button>
-                      </div>
-                      <p style={{fontSize: '0.75rem', color: '#4b5563', marginBottom: '0.75rem'}}>{message}</p>
-                      
-                      <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
-                        <button 
-                          onClick={() => setBuildMode(buildMode === 'settlement' ? null : 'settlement')}
-                          disabled={!canAfford(currentPlayer, 'settlement')}
-                          style={{
-                            width: '100%', 
-                            padding: '0.5rem', 
-                            borderRadius: '0.25rem', 
-                            fontSize: '0.875rem', 
-                            fontWeight: 'bold',
-                            backgroundColor: !canAfford(currentPlayer, 'settlement') ? '#d1d5db' : (buildMode === 'settlement' ? '#92400e' : '#d97706'),
-                            color: !canAfford(currentPlayer, 'settlement') ? '#6b7280' : 'white',
-                            border: 'none',
-                            cursor: !canAfford(currentPlayer, 'settlement') ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          {buildMode === 'settlement' ? 'Cancel' : 'Build Settlement'}
-                          <div style={{fontSize: '0.75rem'}}>W1 B1 S1 Wh1</div>
-                        </button>
-                        
-                        <button 
-                          onClick={() => setBuildMode(buildMode === 'city' ? null : 'city')}
-                          disabled={!canAfford(currentPlayer, 'city')}
-                          style={{
-                            width: '100%', 
-                            padding: '0.5rem', 
-                            borderRadius: '0.25rem', 
-                            fontSize: '0.875rem', 
-                            fontWeight: 'bold',
-                            backgroundColor: !canAfford(currentPlayer, 'city') ? '#d1d5db' : (buildMode === 'city' ? '#92400e' : '#d97706'),
-                            color: !canAfford(currentPlayer, 'city') ? '#6b7280' : 'white',
-                            border: 'none',
-                            cursor: !canAfford(currentPlayer, 'city') ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          {buildMode === 'city' ? 'Cancel' : 'Build City'}
-                          <div style={{fontSize: '0.75rem'}}>Wh2 O3</div>
-                        </button>
-                        
-                        <button 
-                          onClick={endTurn}
-                          style={{
-                            width: '100%', 
-                            padding: '0.5rem', 
-                            backgroundColor: '#059669', 
-                            color: 'white', 
-                            borderRadius: '0.25rem', 
-                            fontWeight: 'bold', 
-                            fontSize: '0.875rem',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          End Turn
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={{backgroundColor: 'white', borderRadius: '0.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)', padding: '0.75rem', fontSize: '0.75rem'}}>
-                      <h4 style={{fontWeight: 'bold', marginBottom: '0.25rem'}}>How to Play:</h4>
-                      <ul style={{listStyleType: 'disc', paddingLeft: '1.25rem', color: '#4b5563'}}>
-                        <li>Roll dice to collect resources</li>
-                        <li>Click "Build Settlement" then click a white dot</li>
-                        <li>Upgrade settlements to cities for 2x resources</li>
-                        <li>First to 10 VP wins!</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
+            return vertices;
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<CatanGame />);
+        
+        const VERTICES = generateVertices();
+        
+        // Create development card deck
+        function createDevCardDeck() {
+            const deck = [];
+            Object.entries(DEV_CARD_TYPES).forEach(([type, count]) => {
+                for (let i = 0; i < count; i++) {
+                    deck.push(type);
+                }
+            });
+            return deck.sort(() => Math.random() - 0.5);
+        }
+        
+        // Game State
+        let gameState = {
+            screen: 'setup',
+            numPlayers: 3,
+            robberEnabled: false,
+            players: [],
+            currentPlayer: 0,
+            dice: [1, 1],
+            lastRoll: null,
+            message: 'Welcome to Energy Catan!',
+            buildMode: null,
+            robberTile: 9,
+            devCardDeck: [],
+            tradeMode: null,
+            tradingResource: null,
+            winner: null
+        };
+        
+        // Initialize players
+        function initializePlayers(count) {
+            const colors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b'];
+            return Array.from({ length: count }, (_, i) => ({
+                name: `Player ${i + 1}`,
+                resources: { money: 4, garbage: 4, energy: 4, license: 4 },
+                wastePlants: [],
+                incinerationPlants: [],
+                roads: [],
+                devCards: [],
+                playedDevCards: [],
+                vp: 0,
+                knights: 0,
+                longestRoad: false,
+                largestArmy: false,
+                color: colors[i],
+                startingCorner: STARTING_CORNERS[i]
+            }));
+        }
+        
+        // Check if player can afford building
+        function canAfford(player, building) {
+            const cost = BUILDING_COSTS[building];
+            return Object.entries(cost).every(([resource, amount]) => 
+                (player.resources[resource] || 0) >= amount
+            );
+        }
+        
+        // Pay for building
+        function payForBuilding(player, building) {
+            const cost = BUILDING_COSTS[building];
+            Object.entries(cost).forEach(([resource, amount]) => {
+                player.resources[resource] -= amount;
+            });
+        }
+        
+        // Roll dice
+        function rollDice() {
+            const d1 = Math.floor(Math.random() * 6) + 1;
+            const d2 = Math.floor(Math.random() * 6) + 1;
+            gameState.dice = [d1, d2];
+            gameState.lastRoll = d1 + d2;
+            
+            if (gameState.robberEnabled && gameState.lastRoll === 7) {
+                gameState.message = `Rolled 7! Move the robber to a new tile (click on a hexagon).`;
+                gameState.buildMode = 'robber';
+                render();
+                return;
+            }
+            
+            // Distribute resources
+            gameState.players.forEach(player => {
+                player.wastePlants.forEach(plantId => {
+                    const vertex = VERTICES.find(v => v.id === plantId);
+                    if (vertex) {
+                        vertex.tiles.forEach(tileId => {
+                            const tile = BOARD_TILES.find(t => t.id === tileId);
+                            if (tile && tile.number === gameState.lastRoll && 
+                                (!gameState.robberEnabled || gameState.robberTile !== tileId)) {
+                                if (player.resources[tile.type] !== undefined) {
+                                    player.resources[tile.type]++;
+                                }
+                            }
+                        });
+                    }
+                });
+                
+                player.incinerationPlants.forEach(plantId => {
+                    const vertex = VERTICES.find(v => v.id === plantId);
+                    if (vertex) {
+                        vertex.tiles.forEach(tileId => {
+                            const tile = BOARD_TILES.find(t => t.id === tileId);
+                            if (tile && tile.number === gameState.lastRoll && 
+                                (!gameState.robberEnabled || gameState.robberTile !== tileId)) {
+                                if (player.resources[tile.type] !== undefined) {
+                                    player.resources[tile.type] += 2;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            gameState.message = `Rolled ${gameState.lastRoll}! Resources distributed.`;
+            render();
+        }
+        
+        // Build waste plant
+        function buildWastePlant(vertexId) {
+            const player = gameState.players[gameState.currentPlayer];
+            
+            if (!canAfford(player, 'wastePlant')) {
+                gameState.message = 'Not enough resources to build Waste Plant!';
+                render();
+                return;
+            }
+            
+            const occupied = gameState.players.some(p => 
+                p.wastePlants.includes(vertexId) || p.incinerationPlants.includes(vertexId)
+            );
+            
+            if (occupied) {
+                gameState.message = 'This location is already occupied!';
+                render();
+                return;
+            }
+            
+            payForBuilding(player, 'wastePlant');
+            player.wastePlants.push(vertexId);
+            player.vp++;
+            
+            checkWinner(player);
+            gameState.message = `${player.name} built a Waste Plant! +1 VP (Total: ${player.vp})`;
+            gameState.buildMode = null;
+            render();
+        }
+        
+        // Build incineration plant
+        function buildIncinerationPlant(vertexId) {
+            const player = gameState.players[gameState.currentPlayer];
+            
+            if (!canAfford(player, 'incinerationPlant')) {
+                gameState.message = 'Not enough resources to build Incineration Plant!';
+                render();
+                return;
+            }
+            
+            if (!player.wastePlants.includes(vertexId)) {
+                gameState.message = 'You need a Waste Plant here first!';
+                render();
+                return;
+            }
+            
+            payForBuilding(player, 'incinerationPlant');
+            player.wastePlants = player.wastePlants.filter(id => id !== vertexId);
+            player.incinerationPlants.push(vertexId);
+            player.vp++;
+            
+            checkWinner(player);
+            gameState.message = `${player.name} built an Incineration Plant! +1 VP (Total: ${player.vp})`;
+            gameState.buildMode = null;
+            render();
+        }
+        
+        // Buy development card
+        function buyDevCard() {
+            const player = gameState.players[gameState.currentPlayer];
+            
+            if (!canAfford(player, 'devCard')) {
+                gameState.message = 'Not enough resources for development card!';
+                render();
+                return;
+            }
+            
+            if (gameState.devCardDeck.length === 0) {
+                gameState.message = 'No more development cards available!';
+                render();
+                return;
+            }
+            
+            payForBuilding(player, 'devCard');
+            const card = gameState.devCardDeck.shift();
+            player.devCards.push(card);
+            
+            if (card === 'victory') {
+                player.vp++;
+                checkWinner(player);
+            }
+            
+            gameState.message = `${player.name} bought a development card: ${card}!`;
+            render();
+        }
+        
+        // Play development card
+        function playDevCard(cardType) {
+            const player = gameState.players[gameState.currentPlayer];
+            const cardIndex = player.devCards.indexOf(cardType);
+            
+            if (cardIndex === -1) return;
+            
+            player.devCards.splice(cardIndex, 1);
+            player.playedDevCards.push(cardType);
+            
+            if (cardType === 'knight') {
+                player.knights++;
+                checkLargestArmy();
+                gameState.message = `${player.name} played a Knight! Move the robber (click on a hexagon).`;
+                gameState.buildMode = 'robber';
+            } else if (cardType === 'roadBuilding') {
+                gameState.message = `${player.name} played Road Building! (Feature coming soon)`;
+            } else if (cardType === 'yearOfPlenty') {
+                gameState.message = `${player.name} played Year of Plenty! (Feature coming soon)`;
+            } else if (cardType === 'monopoly') {
+                gameState.message = `${player.name} played Monopoly! (Feature coming soon)`;
+            }
+            
+            render();
+        }
+        
+        // Check for largest army
+        function checkLargestArmy() {
+            const maxKnights = Math.max(...gameState.players.map(p => p.knights));
+            
+            if (maxKnights >= 3) {
+                gameState.players.forEach(p => {
+                    const hadLargestArmy = p.largestArmy;
+                    const hasLargestArmy = p.knights === maxKnights && p.knights >= 3;
+                    
+                    if (hasLargestArmy && !hadLargestArmy) {
+                        p.largestArmy = true;
+                        p.vp += 2;
+                        checkWinner(p);
+                    } else if (!hasLargestArmy && hadLargestArmy) {
+                        p.largestArmy = false;
+                        p.vp -= 2;
+                    }
+                });
+            }
+        }
+        
+        // Bank trade
+        function startBankTrade(resource) {
+            const player = gameState.players[gameState.currentPlayer];
+            
+            if ((player.resources[resource] || 0) < 4) {
+                gameState.message = `Need 4 ${RESOURCE_NAMES[resource]} to trade with bank!`;
+                render();
+                return;
+            }
+            
+            player.resources[resource] -= 4;
+            gameState.tradingResource = resource;
+            gameState.message = `Select a resource to receive from the bank:`;
+            render();
+        }
+        
+        function completeBankTrade(getResource) {
+            const player = gameState.players[gameState.currentPlayer];
+            player.resources[getResource]++;
+            gameState.message = `Traded 4 ${RESOURCE_NAMES[gameState.tradingResource]} for 1 ${RESOURCE_NAMES[getResource]}!`;
+            gameState.tradeMode = null;
+            gameState.tradingResource = null;
+            render();
+        }
+        
+        // Move robber
+        function moveRobber(tileId) {
+            if (tileId === gameState.robberTile) {
+                gameState.message = 'Robber must move to a different tile!';
+                render();
+                return;
+            }
+            
+            gameState.robberTile = tileId;
+            const tile = BOARD_TILES.find(t => t.id === tileId);
+            gameState.message = `Robber moved to ${tile.type === 'desert' ? 'desert' : RESOURCE_NAMES[tile.type]}!`;
+            gameState.buildMode = null;
+            render();
+        }
+        
+        // Check winner
+        function checkWinner(player) {
+            if (player.vp >= 10) {
+                gameState.screen = 'winner';
+                gameState.winner = player;
+            }
+        }
+        
+        // End turn
+        function endTurn() {
+            gameState.currentPlayer = (gameState.currentPlayer + 1) % gameState.players.length;
+            gameState.buildMode = null;
+            gameState.tradeMode = null;
+            gameState.tradingResource = null;
+            gameState.message = `${gameState.players[gameState.currentPlayer].name}'s turn! Roll the dice.`;
+            render();
+        }
+        
+        // Render functions
+        function renderSetupScreen() {
+            return `
+                <div class="setup-screen">
+                    <h1>⚡ Energy Catan ⚡</h1>
+                    <p>Build a sustainable energy empire!</p>
+                    
+                    <div class="setup-options">
+                        <div class="option-group">
+                            <label for="numPlayers">Number of Players:</label>
+                            <select id="numPlayers" onchange="gameState.numPlayers = parseInt(this.value)">
+                                <option value="2">2 Players</option>
+                                <option value="3" selected>3 Players</option>
+                                <option value="4">4 Players</option>
+                            </select>
+                        </div>
+                        
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="robberToggle" 
+                                ${gameState.robberEnabled ? 'checked' : ''}
+                                onchange="gameState.robberEnabled = this.checked">
+                            <label for="robberToggle">Enable Robber Mechanic</label>
+                        </div>
+                        
+                        <button class="start-button" onclick="startGame()">
+                            Start Game
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderHexagon(tile) {
+            const points = Array.from({ length: 6 }, (_, i) => {
+                const angle = (60 * i - 30) * Math.PI / 180;
+                const x = tile.x + Math.cos(angle) * 50;
+                const y = tile.y + Math.sin(angle) * 50;
+                return `${x},${y}`;
+            }).join(' ');
+            
+            const hasRobber = gameState.robberEnabled && gameState.robberTile === tile.id;
+            const color = tile.type === 'desert' ? '#fbbf24' : RESOURCE_COLORS[tile.type];
+            
+            return `
+                <g class="hex" onclick="${gameState.buildMode === 'robber' ? `moveRobber(${tile.id})` : ''}">
+                    <polygon points="${points}" fill="${color}" stroke="#2d3748" stroke-width="3"/>
+                    ${tile.number > 0 ? `
+                        <circle cx="${tile.x}" cy="${tile.y}" r="20" fill="white" stroke="#2d3748" stroke-width="2"/>
+                        <text x="${tile.x}" y="${tile.y + 7}" text-anchor="middle" 
+                            font-size="20" font-weight="bold" 
+                            fill="${tile.number === 6 || tile.number === 8 ? '#dc2626' : '#2d3748'}">
+                            ${tile.number}
+                        </text>
+                    ` : ''}
+                    ${hasRobber ? `
+                        <circle cx="${tile.x}" cy="${tile.y}" r="15" fill="#1f2937" stroke="#000" stroke-width="2"/>
+                    ` : ''}
+                </g>
+            `;
+        }
+        
+        function renderVertex(vertex) {
+            const wastePlant = gameState.players.find(p => p.wastePlants.includes(vertex.id));
+            const incinerationPlant = gameState.players.find(p => p.incinerationPlants.includes(vertex.id));
+            
+            const color = incinerationPlant ? incinerationPlant.color : 
+                         wastePlant ? wastePlant.color : 'white';
+            
+            const onClick = gameState.buildMode === 'wastePlant' ? `buildWastePlant('${vertex.id}')` :
+                           gameState.buildMode === 'incinerationPlant' ? `buildIncinerationPlant('${vertex.id}')` : '';
+            
+            return `
+                <g class="vertex" onclick="${onClick}">
+                    <circle cx="${vertex.x}" cy="${vertex.y}" r="10" 
+                        fill="${color}" stroke="#2d3748" stroke-width="2.5"/>
+                    ${incinerationPlant ? `
+                        <rect x="${vertex.x - 8}" y="${vertex.y - 8}" width="16" height="16" 
+                            fill="${incinerationPlant.color}" stroke="#2d3748" stroke-width="2.5"/>
+                    ` : ''}
+                </g>
+            `;
+        }
+        
+        function renderGameScreen() {
+            const player = gameState.players[gameState.currentPlayer];
+            
+            return `
+                <div class="game-screen">
+                    <div class="game-header">
+                        <h1>⚡ Energy Catan ⚡</h1>
+                        <div>Turn: ${gameState.currentPlayer + 1} | First to 10 VP wins!</div>
+                    </div>
+                    
+                    <div class="players-panel">
+                        ${gameState.players.map((p, idx) => `
+                            <div class="player-card ${idx === gameState.currentPlayer ? 'active' : ''}">
+                                <div class="player-header">
+                                    <div class="player-color" style="background: ${p.color}"></div>
+                                    <div class="player-name">${p.name}</div>
+                                    <div class="player-corner">${p.startingCorner.name}</div>
+                                </div>
+                                <div class="player-vp">⭐ ${p.vp} VP</div>
+                                <div class="resources-grid">
+                                    ${RESOURCES.map(r => `
+                                        <div class="resource-item" style="background: ${RESOURCE_COLORS[r]}15">
+                                            <span class="resource-count">${p.resources[r] || 0}</span>
+                                            <span class="resource-name">${RESOURCE_NAMES[r]}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                ${p.knights > 0 ? `
+                                    <div class="stats-line">
+                                        ⚔️ ${p.knights} Knights ${p.largestArmy ? '(Largest Army +2 VP)' : ''}
+                                    </div>
+                                ` : ''}
+                                ${p.devCards.length > 0 ? `
+                                    <div class="stats-line">🎴 ${p.devCards.length} Dev Cards</div>
+                                ` : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="board-container">
+                        <svg class="board-svg" viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg">
+                            ${STARTING_CORNERS.map(corner => `
+                                <g class="corner-marker">
+                                    <circle cx="${corner.x}" cy="${corner.y}" r="40" 
+                                        fill="${corner.color}" stroke="#2d3748" stroke-width="3"/>
+                                    <text x="${corner.x}" y="${corner.y + 6}" text-anchor="middle" 
+                                        font-size="14" font-weight="bold" fill="white">
+                                        ${corner.name}
+                                    </text>
+                                </g>
+                            `).join('')}
+                            
+                            ${BOARD_TILES.map(tile => renderHexagon(tile)).join('')}
+                            ${VERTICES.map(vertex => renderVertex(vertex)).join('')}
+                        </svg>
+                    </div>
+                    
+                    <div class="controls-panel">
+                        <div class="control-card">
+                            <div class="control-title">${player.name}'s Turn</div>
+                            
+                            <div class="dice-container">
+                                <div class="die">${gameState.dice[0]}</div>
+                                <div class="die">${gameState.dice[1]}</div>
+                                ${gameState.lastRoll ? `<div class="roll-total">= ${gameState.lastRoll}</div>` : ''}
+                                <button class="btn btn-primary" onclick="rollDice()" style="margin: 0; padding: 8px 16px;">
+                                    Roll
+                                </button>
+                            </div>
+                            
+                            <div class="message-box">${gameState.message}</div>
+                            
+                            <button class="btn btn-warning ${gameState.buildMode === 'wastePlant' ? 'active' : ''}"
+                                onclick="gameState.buildMode = gameState.buildMode === 'wastePlant' ? null : 'wastePlant'; render()"
+                                ${!canAfford(player, 'wastePlant') ? 'disabled' : ''}>
+                                ${gameState.buildMode === 'wastePlant' ? 'Cancel' : 'Build Waste Plant (1 VP)'}
+                                <span class="cost-label">Cost: M1 G1 E1 L1</span>
+                            </button>
+                            
+                            <button class="btn btn-warning ${gameState.buildMode === 'incinerationPlant' ? 'active' : ''}"
+                                onclick="gameState.buildMode = gameState.buildMode === 'incinerationPlant' ? null : 'incinerationPlant'; render()"
+                                ${!canAfford(player, 'incinerationPlant') ? 'disabled' : ''}>
+                                ${gameState.buildMode === 'incinerationPlant' ? 'Cancel' : 'Build Incineration Plant (2 VP)'}
+                                <span class="cost-label">Cost: G2 M3 (Upgrade)</span>
+                            </button>
+                            
+                            <button class="btn btn-info"
+                                onclick="buyDevCard()"
+                                ${!canAfford(player, 'devCard') ? 'disabled' : ''}>
+                                Buy Development Card
+                                <span class="cost-label">Cost: G1 E1 M1</span>
+                            </button>
+                            
+                            <button class="btn btn-success ${gameState.tradeMode ? 'active' : ''}"
+                                onclick="gameState.tradeMode = gameState.tradeMode ? null : 'bank'; render()">
+                                ${gameState.tradeMode ? 'Cancel Trade' : 'Bank Trade (4:1)'}
+                            </button>
+                            
+                            <button class="btn btn-secondary" onclick="endTurn()">
+                                End Turn
+                            </button>
+                            
+                            ${gameState.tradeMode === 'bank' ? `
+                                <div class="trade-panel">
+                                    ${!gameState.tradingResource ? `
+                                        <div class="trade-title">Give 4 of:</div>
+                                        <div class="trade-buttons">
+                                            ${RESOURCES.map(r => `
+                                                <button class="trade-btn" 
+                                                    style="background: ${RESOURCE_COLORS[r]}"
+                                                    onclick="startBankTrade('${r}')"
+                                                    ${(player.resources[r] || 0) < 4 ? 'disabled' : ''}>
+                                                    ${RESOURCE_NAMES[r]} (${player.resources[r] || 0})
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    ` : `
+                                        <div class="trade-title">Receive 1 of:</div>
+                                        <div class="trade-buttons">
+                                            ${RESOURCES.map(r => `
+                                                <button class="trade-btn" 
+                                                    style="background: ${RESOURCE_COLORS[r]}"
+                                                    onclick="completeBankTrade('${r}')">
+                                                    ${RESOURCE_NAMES[r]}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    `}
+                                </div>
+                            ` : ''}
+                            
+                            ${player.devCards.length > 0 ? `
+                                <div class="dev-cards-panel">
+                                    <div class="dev-cards-title">Your Dev Cards:</div>
+                                    <div class="dev-cards-list">
+                                        ${player.devCards.map((card, idx) => `
+                                            <button class="dev-card" 
+                                                onclick="playDevCard('${card}')"
+                                                ${card === 'victory' ? 'disabled' : ''}>
+                                                ${card}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="control-card help-box">
+                            <h4>📖 How to Play:</h4>
+                            <ul>
+                                <li>Roll dice for resources</li>
+                                <li>Build Waste Plants (1 VP)</li>
+                                <li>Upgrade to Incineration Plants (2 VP)</li>
+                                <li>Buy & play dev cards</li>
+                                <li>Trade with bank (4:1)</li>
+                                <li>First to 10 VP wins!</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderWinnerScreen() {
+            return `
+                <div class="winner-screen">
+                    <h1>🎉 Victory! 🎉</h1>
+                    <div class="winner-color" style="background: ${gameState.winner.color}"></div>
+                    <div class="winner-name">${gameState.winner.name}</div>
+                    <div class="winner-vp">⭐ ${gameState.winner.vp} Victory Points</div>
+                    <button class="start-button" onclick="location.reload()">
+                        New Game
+                    </button>
+                </div>
+            `;
+        }
+        
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (gameState.screen === 'setup') {
+                app.innerHTML = renderSetupScreen();
+            } else if (gameState.screen === 'game') {
+                app.innerHTML = renderGameScreen();
+            } else if (gameState.screen === 'winner') {
+                app.innerHTML = renderWinnerScreen();
+            }
+        }
+        
+        function startGame() {
+            gameState.players = initializePlayers(gameState.numPlayers);
+            gameState.devCardDeck = createDevCardDeck();
+            gameState.screen = 'game';
+            gameState.message = `${gameState.players[0].name}'s turn! Roll the dice to begin.`;
+            render();
+        }
+        
+        // Initial render
+        render();
     </script>
 </body>
 </html>
