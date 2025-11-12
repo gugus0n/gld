@@ -1233,6 +1233,14 @@
             gameState.message = `🎮 Phase 2 begins! ${gameState.players[0].name}'s turn! 🎲 Roll the dice to start!`;
         }
         
+        // Skip to Phase 2 (for demo/presentation purposes)
+        function skipToPhase2() {
+            if (confirm('⏭️ Skip to Phase 2? This will end the initial placement phase.')) {
+                startPhase2();
+                render();
+            }
+        }
+        
         // Check for longest road (simplified - counts total roads)
         function checkLongestRoad() {
             const roadCounts = gameState.players.map(p => ({
@@ -1605,6 +1613,11 @@
                                     <small>Each player places 1 item per turn</small><br>
                                     <small style="color: #92400e;">Round ${gameState.placementRound} of 2</small><br>
                                     <small style="color: #059669;">Goal: 1 Waste Plant + 3 Roads per round</small>
+                                    <div style="margin-top: 10px;">
+                                        <button class="btn btn-info" onclick="skipToPhase2()" style="padding: 5px 12px; font-size: 0.85rem;">
+                                            ⏭️ Skip to Phase 2 (Demo)
+                                        </button>
+                                    </div>
                                 </div>
                             `}
                             
